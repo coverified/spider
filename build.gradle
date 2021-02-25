@@ -1,18 +1,18 @@
 plugins {
-    id 'groovy' // groovy support
-    id 'java' // java support
-    id 'scala' // scala support
-    id 'com.diffplug.spotless' version '5.7.0'//code format
+	id 'groovy' // groovy support
+	id 'java' // java support
+	id 'scala' // scala support
+	id 'com.diffplug.spotless' version '5.7.0'//code format
 }
 
 
 ext {
 
-    scalaVersion = '2.13'
-    scalaBinaryVersion = '2.13.1'
-    javaVersion = JavaVersion.VERSION_1_8
+	scalaVersion = '2.13'
+	scalaBinaryVersion = '2.13.1'
+	javaVersion = JavaVersion.VERSION_1_8
 
-    scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator //location of script plugins
+	scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator //location of script plugins
 }
 
 apply from: scriptsLocation + 'spotless.gradle'
@@ -24,19 +24,31 @@ sourceCompatibility = javaVersion
 targetCompatibility = javaVersion
 
 configurations {
-    scalaCompilerPlugin
+	scalaCompilerPlugin
 }
 
 repositories {
-    jcenter() //searches in bintray's repository 'jCenter', which contains Maven Central
+	jcenter() //searches in bintray's repository 'jCenter', which contains Maven Central
 }
 
 dependencies {
 
-    // coverified dependencies
-    implementation('info.coverified:graphQLConnector:0.1-SNAPSHOT')
+	// coverified dependencies
+	implementation('info.coverified:graphQLConnector:0.1-SNAPSHOT')
 
-    // CORE Scala //
-    compile "org.scala-lang:scala-library:${scalaBinaryVersion}"
+	// https://mvnrepository.com/artifact/com.github.ghostdogpr/caliban
+	implementation group: 'com.github.ghostdogpr', name: "caliban_${scalaVersion}", version: '0.9.5'
+
+	// https://mvnrepository.com/artifact/com.github.ghostdogpr/caliban-client
+	implementation group: 'com.github.ghostdogpr', name: "caliban-client_${scalaVersion}", version: '0.9.5'
+
+	// https://mvnrepository.com/artifact/com.github.ghostdogpr/caliban-codegen
+	//implementation group: 'com.github.ghostdogpr', name: "caliban-codegen_${scalaVersion}", version: '0.8.1'
+
+	// https://mvnrepository.com/artifact/com.github.ghostdogpr/caliban-tools
+	implementation group: 'com.github.ghostdogpr', name: "caliban-tools_${scalaVersion}", version: '0.9.5'
+
+	// CORE Scala //
+	compile "org.scala-lang:scala-library:${scalaBinaryVersion}"
 
 }
