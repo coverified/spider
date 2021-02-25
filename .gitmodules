@@ -1,0 +1,3 @@
+[submodule "src/main/sh/fetchurls"]
+	path = src/main/sh/fetchurls
+	url = git@github.com:adamdehaven/fetchurls.git
