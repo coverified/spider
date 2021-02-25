@@ -33,31 +33,10 @@ repositories {
 
 dependencies {
 
+    // coverified dependencies
+    implementation('info.coverified:graphQLConnector:0.1-SNAPSHOT')
+
     // CORE Scala //
     compile "org.scala-lang:scala-library:${scalaBinaryVersion}"
 
-    compile "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:1.4.4" // scala scapegoat
-    scalaCompilerPlugin "com.sksamuel.scapegoat:scalac-scapegoat-plugin_${scalaBinaryVersion}:1.4.4" // scala scapegoat
-}
-
-// scapegoat hook configuration
-// https://github.com/sksamuel/scapegoat
-// using compileScala instead of tasks.withType(ScalaCompile) prevents applying scapegoat to scala test classes
-// see https://docs.gradle.org/current/userguide/scala_plugin.html#sec:configure_scala_classpath for details
-compileScala {
-    scalaCompileOptions.additionalParameters = [
-            "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
-            "-P:scapegoat:dataDir:" + buildDir + "/reports/scapegoat/src/",
-            "-P:scapegoat:disabledInspections:VariableShadowing",
-            "-P:scapegoat:ignoredFiles:.*/SimonaConfig.scala" // see scapegoat-sbt page for this param
-    ]
-}
-
-// separate scapegoat report for test classes
-compileTestScala {
-    scalaCompileOptions.additionalParameters = [
-            "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
-            "-P:scapegoat:dataDir:" + buildDir + "/reports/scapegoat/testsrc/",
-            "-P:scapegoat:disabledInspections:VariableShadowing"
-    ]
 }
