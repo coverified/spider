@@ -21,4 +21,7 @@ RUN cd /usr/local/bin \
     && sed -i -e 's{#!/bin/sh{#!/bin/bash{' fetchurls.sh \
     && chmod +x fetchurls.sh
 
+ENV SPIDER_API_URL=https://gql.platform.coverified.info/admin/api
+ENV SPIDER_FETCH_SCRIPT_PATH=/usr/local/bin/fetchurls.sh
+
 ENTRYPOINT ["java", "-jar", "spider_service-0.1-SNAPSHOT-all.jar"]
