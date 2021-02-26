@@ -288,3 +288,5 @@ fabric.properties
 .history/
 
 /src/main/resources/fetchurls/.github/*
+
+/*.txt
