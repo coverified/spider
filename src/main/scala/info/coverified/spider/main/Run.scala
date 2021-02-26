@@ -5,6 +5,7 @@
 
 package info.coverified.spider.main
 
+import com.typesafe.scalalogging.LazyLogging
 import info.coverified.graphql.schema.CoVerifiedClientSchema.Url
 import info.coverified.spider.main.ArgsParser.Args
 import sttp.client3.UriContext
@@ -20,7 +21,7 @@ import java.io.File
   * @version 0.1
   * @since 25.02.21
   */
-object Run extends App {
+object Run extends App with LazyLogging {
   override def run(args: List[String]): URIO[zio.ZEnv, ExitCode] = {
 
     val spider = ArgsParser
@@ -32,7 +33,9 @@ object Run extends App {
             new File(fetchUrlPath),
             new java.io.File(".")
           ))
-        case _ => None
+        case _ =>
+          logger.info("Trying to get configuration from environment variables ... ")
+          None
       }
       .getOrElse(
         Option(sys.env("SPIDER_API_URL"))
