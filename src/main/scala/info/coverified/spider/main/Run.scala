@@ -23,21 +23,33 @@ import java.io.File
 object Run extends App {
   override def run(args: List[String]): URIO[zio.ZEnv, ExitCode] = {
 
-    val spider = ArgsParser.parse(args.toArray) match {
-      case Some(Args(Some(apiUrl), Some(fetchUrlPath))) =>
-        Spider(
-          uri"$apiUrl",
-          new File(fetchUrlPath),
-          new java.io.File(".")
-        )
-      case _ =>
-        throw new RuntimeException(
-          "Config parameters missing!"
-        )
-    }
+    val spider = ArgsParser
+      .parse(args.toArray)
+      .map {
+        case Args(Some(apiUrl), Some(fetchUrlPath)) =>
+          Spider(
+            uri"$apiUrl",
+            new File(fetchUrlPath),
+            new java.io.File(".")
+          )
+      }
+      .getOrElse(
+        Option(sys.env("SPIDER_API_URL"))
+          .zip(Option(sys.env("SPIDER_FETCH_SCRIPT_PATH"))) match {
+          case Some((apiUrl, fetchUrlPath)) =>
+            Spider(
+              uri"$apiUrl",
+              new File(fetchUrlPath),
+              new java.io.File(".")
+            )
+          case None =>
+            throw new RuntimeException(
+              "Config parameters missing!"
+            )
+        }
+      )
 
     // todo delete tmp files
-
     val spiderRun = for {
       sources <- spider.getSources
       existingUrls <- spider.getExistingUrls
