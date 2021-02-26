@@ -42,9 +42,6 @@ dependencies {
 	// https://mvnrepository.com/artifact/com.github.ghostdogpr/caliban-client
 	implementation group: 'com.github.ghostdogpr', name: "caliban-client_${scalaVersion}", version: '0.9.5'
 
-	// https://mvnrepository.com/artifact/com.github.ghostdogpr/caliban-codegen
-	//implementation group: 'com.github.ghostdogpr', name: "caliban-codegen_${scalaVersion}", version: '0.8.1'
-
 	// https://mvnrepository.com/artifact/com.github.ghostdogpr/caliban-tools
 	implementation group: 'com.github.ghostdogpr', name: "caliban-tools_${scalaVersion}", version: '0.9.5'
 
