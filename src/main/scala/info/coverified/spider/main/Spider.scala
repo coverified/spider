@@ -33,7 +33,7 @@ import java.util.UUID
   * @version 0.1
   * @since 25.02.21
   */
-case class Spider(apiUrl: Uri, tmpDirPath: File) {
+final case class Spider(apiUrl: Uri, tmpDirPath: File) {
 
   if (!tmpDirPath.exists())
     tmpDirPath.mkdirs()
