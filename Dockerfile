@@ -1,22 +1,20 @@
-FROM openjdk:8-slim
+FROM debian:10
 
 RUN apt-get update \
     && apt-get install -y \
     wget \
     grep \
     procps \
+    default-jdk \
+    scala \
     && rm -rf /var/lib/apt/lists/*
-
-RUN cd /tmp
-RUN wget https://downloads.lightbend.com/scala/2.13.5/scala-2.13.5.deb
-RUN dpkg -i scala-2.13.5.deb
-
-RUN cd /usr/local/bin \
-    && wget https://raw.githubusercontent.com/adamdehaven/fetchurls/master/fetchurls.sh \
-    && sed -i -e 's{#!/bin/sh{#!/bin/bash{' fetchurls.sh \
-    && chmod +x fetchurls.sh
+    && cd /tmp \
+    && wget https://downloads.lightbend.com/scala/2.13.5/scala-2.13.5.deb \
+    && dpkg -i scala-2.13.5.deb
 
 COPY . /app
 
 RUN cd /app \
-    && ./gradlew clean build
+    && ./gradlew shadowJar
+
+ENTRYPOINT ["java", "-jar", "spider_service-0.1-SNAPSHOT-all.jar"]

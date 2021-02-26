@@ -1,3 +1,0 @@
-[submodule "src/main/resources/fetchurls"]
-	path = src/main/resources/fetchurls
-	url = git@github.com:adamdehaven/fetchurls.git

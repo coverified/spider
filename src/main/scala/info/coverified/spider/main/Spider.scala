@@ -102,7 +102,7 @@ final case class Spider(apiUrl: Uri, tmpDirPath: File) {
       outputFileName: String
   ) = {
     FetchUrlWrapper(
-      getClass.getClassLoader.getResource("fetchurls/fetchurls.sh").getFile
+      getClass.getClassLoader.getResource("fetchurls.sh").getFile
     ).run(url, outputPath, outputFileName)
   }
 
