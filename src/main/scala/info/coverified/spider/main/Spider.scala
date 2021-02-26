@@ -33,7 +33,7 @@ import java.util.UUID
   * @version 0.1
   * @since 25.02.21
   */
-final case class Spider(apiUrl: Uri, tmpDirPath: File) {
+final case class Spider(apiUrl: Uri, fetchUrlPath: File, tmpDirPath: File) {
 
   if (!tmpDirPath.exists())
     tmpDirPath.mkdirs()
@@ -102,8 +102,7 @@ final case class Spider(apiUrl: Uri, tmpDirPath: File) {
       outputFileName: String
   ) = {
     FetchUrlWrapper(
-//      this.getClass.getClassLoader.getResource("/fetchurls.sh").getFile
-      new File("/usr/local/bin/fetchurls.sh").getAbsolutePath
+      fetchUrlPath.getAbsolutePath
     ).run(url, outputPath, outputFileName)
   }
 

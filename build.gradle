@@ -3,6 +3,7 @@ plugins {
 	id 'java' // java support
 	id 'scala' // scala support
 	id 'com.diffplug.spotless' version '5.7.0'//code format
+	id 'application' // creates a JVM executable
 	id "com.github.johnrengelman.shadow" version "5.1.0" // fat jar
 }
 
@@ -14,6 +15,8 @@ ext {
 	javaVersion = JavaVersion.VERSION_11
 
 	scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator //location of script plugins
+
+	mainClass = 'edu.ie3.missioncontrol.StartMissionControl'
 }
 
 apply from: scriptsLocation + 'spotless.gradle'
@@ -26,6 +29,10 @@ targetCompatibility = javaVersion
 
 configurations {
 	scalaCompilerPlugin
+}
+
+application {
+	mainClassName = mainClass
 }
 
 repositories {
@@ -46,6 +53,9 @@ dependencies {
 
 	// https://mvnrepository.com/artifact/com.github.ghostdogpr/caliban-tools
 	implementation group: 'com.github.ghostdogpr', name: "caliban-tools_${scalaVersion}", version: '0.9.5'
+
+	// cmd args parser //
+	compile "com.github.scopt:scopt_${scalaVersion}:4.0.0"
 
 	// CORE Scala //
 	compile "org.scala-lang:scala-library:${scalaBinaryVersion}"

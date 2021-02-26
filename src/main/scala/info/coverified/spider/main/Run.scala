@@ -6,10 +6,13 @@
 package info.coverified.spider.main
 
 import info.coverified.graphql.schema.CoVerifiedClientSchema.Url
+import info.coverified.spider.main.ArgsParser.Args
 import sttp.client3.UriContext
 import sttp.client3.asynchttpclient.zio.{AsyncHttpClientZioBackend, SttpClient}
 import zio.console.Console
 import zio.{App, ExitCode, RIO, Task, URIO, ZIO}
+
+import java.io.File
 
 /**
   * //ToDo: Class Description
@@ -20,12 +23,20 @@ import zio.{App, ExitCode, RIO, Task, URIO, ZIO}
 object Run extends App {
   override def run(args: List[String]): URIO[zio.ZEnv, ExitCode] = {
 
-    // todo delete tmp files
+    val spider = ArgsParser.parse(args.toArray) match {
+      case Some(Args(Some(apiUrl), Some(fetchUrlPath))) =>
+        Spider(
+          uri"$apiUrl",
+          new File(fetchUrlPath),
+          new java.io.File(".")
+        )
+      case _ =>
+        throw new RuntimeException(
+          "Config parameters missing!"
+        )
+    }
 
-    val spider = Spider(
-      uri"http://coverified-backend-keystone.docker/admin/api",
-      new java.io.File(".")
-    )
+    // todo delete tmp files
 
     val spiderRun = for {
       sources <- spider.getSources
