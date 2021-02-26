@@ -6,7 +6,6 @@ RUN apt-get update \
     grep \
     procps \
     default-jdk \
-    scala \
     && rm -rf /var/lib/apt/lists/*
     && cd /tmp \
     && wget https://downloads.lightbend.com/scala/2.13.5/scala-2.13.5.deb \
