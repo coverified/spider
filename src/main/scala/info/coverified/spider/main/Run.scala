@@ -30,7 +30,9 @@ object Run extends App {
     val spiderRun = for {
       sources <- spider.getSources
       existingUrls <- spider.getExistingUrls
-      _ <- spider.getMutations(sources, existingUrls)
+      _ <- ZIO.collectAll(
+        sources.flatten.map(source => spider.getMutations(source, existingUrls))
+      )
     } yield ()
 
     spiderRun.provideCustomLayer(AsyncHttpClientZioBackend.layer()).exitCode

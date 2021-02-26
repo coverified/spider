@@ -1,7 +1,7 @@
 /**
  * © 2021. CoVerified,
  * Diehl, Fetzer, Hiry, Kilian, Mayer, Schlittenbauer, Schweikert, Vollnhals, Weise GbR
- * */
+ **/
 
 package info.coverified.spider.main
 
@@ -28,20 +28,20 @@ import java.io.File
 import java.util.UUID
 
 /**
- * //ToDo: Class Description
- *
- * @version 0.1
- * @since 25.02.21
- */
+  * //ToDo: Class Description
+  *
+  * @version 0.1
+  * @since 25.02.21
+  */
 case class Spider(apiUrl: Uri, tmpDirPath: File) {
 
   if (!tmpDirPath.exists())
     tmpDirPath.mkdirs()
 
   def getSources
-  : ZIO[Console with SttpClient, Throwable, List[Option[Source.SourceView[
-    GeoLocation.GeoLocationView[LocationGoogle.LocationGoogleView]
-  ]]]] = {
+      : ZIO[Console with SttpClient, Throwable, List[Option[Source.SourceView[
+        GeoLocation.GeoLocationView[LocationGoogle.LocationGoogleView]
+      ]]]] = {
     // get sources
     val sourcesQuery =
       Query.allSources()(Source.view(GeoLocation.view(LocationGoogle.view)))
@@ -52,7 +52,7 @@ case class Spider(apiUrl: Uri, tmpDirPath: File) {
   }
 
   def getExistingUrls
-  : ZIO[Console with SttpClient, Throwable, List[Url.UrlView]] = {
+      : ZIO[Console with SttpClient, Throwable, List[Url.UrlView]] = {
     // get existent urls
     val urlsQuery = Query.allUrls()(Url.view)
     val existingUrls = Connector
@@ -62,51 +62,45 @@ case class Spider(apiUrl: Uri, tmpDirPath: File) {
   }
 
   def getMutations(
-                    sources: List[Option[Source.SourceView[
-                      GeoLocation.GeoLocationView[LocationGoogle.LocationGoogleView]
-                    ]]],
-                    existingUrls: Seq[Url.UrlView]
-                  ) = {
-    // fetch url for all sources that has been found
-    ZIO.collectAll(
-      sources.flatMap {
-        case Some(source) =>
-          // create tmp file for source, if the name is empty, create random file name
-          val outputFileName = source.name.getOrElse(UUID.randomUUID().toString)
+      source: Source.SourceView[
+        GeoLocation.GeoLocationView[LocationGoogle.LocationGoogleView]
+      ],
+      existingUrls: Seq[Url.UrlView]
+  ): ZIO[Console with SttpClient, Throwable, Set[Option[Url.UrlView]]] = {
+    ZIO.collectAll({
+      val outputFileName = source.name.getOrElse(UUID.randomUUID().toString)
 
-          // run fetchUrls
-          source.url.map(
-            sourceUrl => fetchUrls(sourceUrl, tmpDirPath, outputFileName)
+      // run fetchUrls
+      source.url.map(
+        sourceUrl => fetchUrls(sourceUrl, tmpDirPath, outputFileName)
+      )
+
+      // if finished, get the new urls
+      val urlsFileSource = scala.io.Source
+        .fromFile(s"$tmpDirPath${File.separator}$outputFileName.txt")
+      val fetchedUrls = urlsFileSource.getLines().toSet
+      urlsFileSource.close()
+
+      // filter the existing urls
+      val newUrls = fetchedUrls.filterNot(existingUrls.flatMap(_.url).toSet)
+
+      // create mutations for new urls and send them
+      newUrls.map(
+        url =>
+          Connector.sendRequest(
+            Mutation
+              .createUrl(Some(UrlCreateInput(Some(url))))(Url.view)
+              .toRequest(apiUrl)
           )
-
-          // if finished, get the new urls
-          val urlsFileSource = scala.io.Source
-            .fromFile(s"$tmpDirPath${File.separator}$outputFileName.txt")
-          val fetchedUrls = urlsFileSource.getLines().toSet
-          urlsFileSource.close()
-
-          // filter the existing urls
-          val newUrls = fetchedUrls.filterNot(existingUrls.flatMap(_.url).toSet)
-
-          // create mutations for new urls and send them
-          newUrls.map(
-            url =>
-              Connector.sendRequest(
-                Mutation
-                  .createUrl(Some(UrlCreateInput(Some(url))))(Url.view)
-                  .toRequest(apiUrl)
-              )
-          )
-
-        case None => List.empty
-      })
+      )
+    })
   }
 
   private def fetchUrls(
-                         url: String,
-                         outputPath: File,
-                         outputFileName: String
-                       ) = {
+      url: String,
+      outputPath: File,
+      outputFileName: String
+  ) = {
     FetchUrlWrapper(
       getClass.getClassLoader.getResource("fetchurls/fetchurls.sh").getFile
     ).run(url, outputPath, outputFileName)
