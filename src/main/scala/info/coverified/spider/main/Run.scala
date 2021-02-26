@@ -25,13 +25,14 @@ object Run extends App {
 
     val spider = ArgsParser
       .parse(args.toArray)
-      .map {
+      .flatMap{
         case Args(Some(apiUrl), Some(fetchUrlPath)) =>
-          Spider(
+          Some(Spider(
             uri"$apiUrl",
             new File(fetchUrlPath),
             new java.io.File(".")
-          )
+          ))
+        case _ => None
       }
       .getOrElse(
         Option(sys.env("SPIDER_API_URL"))
