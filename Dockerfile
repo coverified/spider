@@ -24,4 +24,4 @@ RUN cd /usr/local/bin \
 ENV SPIDER_API_URL=https://gql.platform.coverified.info/admin/api
 ENV SPIDER_FETCH_SCRIPT_PATH=/usr/local/bin/fetchurls.sh
 
-ENTRYPOINT ["java", "-jar", "spider_service-0.1-SNAPSHOT-all.jar"]
+ENTRYPOINT ["java", "-cp", "/app/build/libs/spider_service-0.1-SNAPSHOT-all.jar", "info.coverified.spider.main.Run"]
