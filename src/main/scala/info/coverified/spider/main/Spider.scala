@@ -85,7 +85,7 @@ final case class Spider(apiUrl: Uri, fetchUrlPath: File, tmpDirPath: File) {
     ]]]
   ]] = {
     ZIO.collectAll({
-      val outputFileName = source.id.getOrElse(UUID.randomUUID().toString)
+      val outputFileName = source.id
 
       // run fetchUrls
       source.url.map(
