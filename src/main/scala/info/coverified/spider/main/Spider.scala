@@ -15,6 +15,8 @@ import info.coverified.graphql.schema.CoVerifiedClientSchema.{
   Mutation,
   Query,
   Source,
+  SourceRelateToOneInput,
+  SourceWhereUniqueInput,
   Url,
   UrlCreateInput
 }
@@ -51,10 +53,19 @@ final case class Spider(apiUrl: Uri, fetchUrlPath: File, tmpDirPath: File) {
     sourcesReq
   }
 
-  def getExistingUrls
-      : ZIO[Console with SttpClient, Throwable, List[Url.UrlView]] = {
+  def getExistingUrls: ZIO[Console with SttpClient, Throwable, List[
+    Url.UrlView[Source.SourceView[
+      GeoLocation.GeoLocationView[LocationGoogle.LocationGoogleView]
+    ]]
+  ]] = {
     // get existent urls
-    val urlsQuery = Query.allUrls()(Url.view)
+    val urlsQuery = Query.allUrls()(
+      Url.view(
+        Source.view(
+          GeoLocation.view(LocationGoogle.view)
+        )
+      )
+    )
     val existingUrls = Connector
       .sendRequest(urlsQuery.toRequest(apiUrl))
       .map(_.map(_.flatten).getOrElse(List.empty))
@@ -65,8 +76,14 @@ final case class Spider(apiUrl: Uri, fetchUrlPath: File, tmpDirPath: File) {
       source: Source.SourceView[
         GeoLocation.GeoLocationView[LocationGoogle.LocationGoogleView]
       ],
-      existingUrls: Seq[Url.UrlView]
-  ): ZIO[Console with SttpClient, Throwable, Set[Option[Url.UrlView]]] = {
+      existingUrls: Seq[Url.UrlView[Source.SourceView[
+        GeoLocation.GeoLocationView[LocationGoogle.LocationGoogleView]
+      ]]]
+  ): ZIO[Console with SttpClient, Throwable, Set[
+    Option[Url.UrlView[Source.SourceView[
+      GeoLocation.GeoLocationView[LocationGoogle.LocationGoogleView]
+    ]]]
+  ]] = {
     ZIO.collectAll({
       val outputFileName = source.name.getOrElse(UUID.randomUUID().toString)
 
@@ -89,7 +106,28 @@ final case class Spider(apiUrl: Uri, fetchUrlPath: File, tmpDirPath: File) {
         url =>
           Connector.sendRequest(
             Mutation
-              .createUrl(Some(UrlCreateInput(Some(url))))(Url.view)
+              .createUrl(
+                Some(
+                  UrlCreateInput(
+                    Some(url),
+                    Some(
+                      SourceRelateToOneInput(
+                        connect = Some(
+                          SourceWhereUniqueInput(
+                            source.id
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )(
+                Url.view(
+                  Source.view(
+                    GeoLocation.view(LocationGoogle.view)
+                  )
+                )
+              )
               .toRequest(apiUrl)
           )
       )

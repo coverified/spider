@@ -26,15 +26,19 @@ object Run extends App with LazyLogging {
 
     val spider = ArgsParser
       .parse(args.toArray)
-      .flatMap{
+      .flatMap {
         case Args(Some(apiUrl), Some(fetchUrlPath)) =>
-          Some(Spider(
-            uri"$apiUrl",
-            new File(fetchUrlPath),
-            new java.io.File(".")
-          ))
+          Some(
+            Spider(
+              uri"$apiUrl",
+              new File(fetchUrlPath),
+              new java.io.File(".")
+            )
+          )
         case _ =>
-          logger.info("Trying to get configuration from environment variables ... ")
+          logger.info(
+            "Trying to get configuration from environment variables ... "
+          )
           None
       }
       .getOrElse(
