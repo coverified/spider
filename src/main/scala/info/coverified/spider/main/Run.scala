@@ -32,7 +32,7 @@ object Run extends App with LazyLogging {
             Spider(
               uri"$apiUrl",
               new File(fetchUrlPath),
-              new java.io.File(".")
+              new java.io.File("/tmp")
             )
           )
         case _ =>
@@ -48,7 +48,7 @@ object Run extends App with LazyLogging {
             Spider(
               uri"$apiUrl",
               new File(fetchUrlPath),
-              new java.io.File(".")
+              new java.io.File("/tmp")
             )
           case None =>
             throw new RuntimeException(
