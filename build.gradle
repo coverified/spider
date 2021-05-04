@@ -1,19 +1,19 @@
 plugins {
-    id 'groovy' // groovy support
-    id 'java' // java support
-    id 'scala' // scala support
-    id 'com.diffplug.spotless' version '5.7.0'//code format
-    id "com.github.johnrengelman.shadow" version "5.1.0" // fat jar
+	id 'groovy' // groovy support
+	id 'java' // java support
+	id 'scala' // scala support
+	id 'com.diffplug.spotless' version '5.7.0'//code format
+	id "com.github.johnrengelman.shadow" version "5.1.0" // fat jar
 }
 
 
 ext {
 
-    scalaVersion = '2.13'
-    scalaBinaryVersion = '2.13.5'
-    javaVersion = JavaVersion.VERSION_11
+	scalaVersion = '2.13'
+	scalaBinaryVersion = '2.13.5'
+	javaVersion = JavaVersion.VERSION_11
 
-    scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator //location of script plugins
+	scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator //location of script plugins
 
 }
 
@@ -26,39 +26,45 @@ sourceCompatibility = javaVersion
 targetCompatibility = javaVersion
 
 configurations {
-    scalaCompilerPlugin
+	scalaCompilerPlugin
 }
 
 repositories {
-    jcenter() //searches in bintray's repository 'jCenter', which contains Maven Central
-    maven { url 'https://jitpack.io' }
+	jcenter() //searches in bintray's repository 'jCenter', which contains Maven Central
+	maven { url 'https://jitpack.io' }
 }
 
 dependencies {
 
-    // coverified dependencies
-    implementation 'com.github.coverified:graphQLConnector:00a1abc245'
+	// coverified dependencies
+	implementation 'com.github.coverified:graphQLConnector:00a1abc245'
 
-    // sentry loggin
-    implementation 'io.sentry:sentry-log4j2:4.3.0'
+	// sentry loggin
+	implementation 'io.sentry:sentry-log4j2:4.3.0'
 
-    // https://mvnrepository.com/artifact/com.github.ghostdogpr/caliban
-    implementation group: 'com.github.ghostdogpr', name: "caliban_${scalaVersion}", version: '0.9.5'
+	// https://mvnrepository.com/artifact/com.github.ghostdogpr/caliban
+	implementation group: 'com.github.ghostdogpr', name: "caliban_${scalaVersion}", version: '0.9.5'
 
-    // https://mvnrepository.com/artifact/com.github.ghostdogpr/caliban-client
-    implementation group: 'com.github.ghostdogpr', name: "caliban-client_${scalaVersion}", version: '0.9.5'
+	// https://mvnrepository.com/artifact/com.github.ghostdogpr/caliban-client
+	implementation group: 'com.github.ghostdogpr', name: "caliban-client_${scalaVersion}", version: '0.9.5'
 
-    // https://mvnrepository.com/artifact/com.github.ghostdogpr/caliban-tools
-    implementation group: 'com.github.ghostdogpr', name: "caliban-tools_${scalaVersion}", version: '0.9.5'
+	// https://mvnrepository.com/artifact/com.github.ghostdogpr/caliban-tools
+	implementation group: 'com.github.ghostdogpr', name: "caliban-tools_${scalaVersion}", version: '0.9.5'
 
-    // cmd args parser //
-    compile "com.github.scopt:scopt_${scalaVersion}:4.0.0"
+	// cmd args parser //
+	compile "com.github.scopt:scopt_${scalaVersion}:4.0.0"
 
-    // CORE Scala //
-    compile "org.scala-lang:scala-library:${scalaBinaryVersion}"
+	// CORE Scala //
+	compile "org.scala-lang:scala-library:${scalaBinaryVersion}"
 
-    // CORE akka //
-    implementation platform("com.typesafe.akka:akka-bom_${scalaVersion}:2.6.14")
-    implementation "com.typesafe.akka:akka-actor-typed_${scalaVersion}"
+	// CORE akka //
+	implementation platform("com.typesafe.akka:akka-bom_${scalaVersion}:2.6.14")
+	implementation "com.typesafe.akka:akka-actor-typed_${scalaVersion}"
+
+	// jsoup html parser
+	implementation group: 'org.jsoup', name: 'jsoup', version: '1.13.1'
+
+	// url validator
+	implementation group: 'commons-validator', name: 'commons-validator', version: '1.7'
 
 }

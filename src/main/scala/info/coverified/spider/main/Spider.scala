@@ -1,7 +1,7 @@
 /**
-  * © 2021. CoVerified,
-  * Diehl, Fetzer, Hiry, Kilian, Mayer, Schlittenbauer, Schweikert, Vollnhals, Weise GbR
-  **/
+ * © 2021. CoVerified,
+ * Diehl, Fetzer, Hiry, Kilian, Mayer, Schlittenbauer, Schweikert, Vollnhals, Weise GbR
+ **/
 
 package info.coverified.spider.main
 
@@ -41,9 +41,9 @@ final case class Spider(apiUrl: Uri, fetchUrlPath: File, tmpDirPath: File) {
     tmpDirPath.mkdirs()
 
   def getSources
-  : ZIO[Console with SttpClient, Throwable, List[Option[Source.SourceView[
-    GeoLocation.GeoLocationView[LocationGoogle.LocationGoogleView]
-  ]]]] = {
+      : ZIO[Console with SttpClient, Throwable, List[Option[Source.SourceView[
+        GeoLocation.GeoLocationView[LocationGoogle.LocationGoogleView]
+      ]]]] = {
     // get sources
     val sourcesQuery =
       Query.allSources()(Source.view(GeoLocation.view(LocationGoogle.view)))
@@ -73,13 +73,13 @@ final case class Spider(apiUrl: Uri, fetchUrlPath: File, tmpDirPath: File) {
   }
 
   def getMutations(
-                    source: Source.SourceView[
-                      GeoLocation.GeoLocationView[LocationGoogle.LocationGoogleView]
-                    ],
-                    existingUrls: Seq[Url.UrlView[Source.SourceView[
-                      GeoLocation.GeoLocationView[LocationGoogle.LocationGoogleView]
-                    ]]]
-                  ): ZIO[Console with SttpClient, Throwable, Set[
+      source: Source.SourceView[
+        GeoLocation.GeoLocationView[LocationGoogle.LocationGoogleView]
+      ],
+      existingUrls: Seq[Url.UrlView[Source.SourceView[
+        GeoLocation.GeoLocationView[LocationGoogle.LocationGoogleView]
+      ]]]
+  ): ZIO[Console with SttpClient, Throwable, Set[
     Option[Url.UrlView[Source.SourceView[
       GeoLocation.GeoLocationView[LocationGoogle.LocationGoogleView]
     ]]]
@@ -88,59 +88,62 @@ final case class Spider(apiUrl: Uri, fetchUrlPath: File, tmpDirPath: File) {
       val outputFileName = source.id
 
       // run fetchUrls
-      source.url.map {
-        sourceUrl =>
-          fetchUrls(sourceUrl, tmpDirPath, outputFileName)
+      source.url
+        .map {
+          sourceUrl =>
+            fetchUrls(sourceUrl, tmpDirPath, outputFileName)
 
-          // if finished, get the new urls
-          val urlsFileSource = scala.io.Source
-            .fromFile(s"$tmpDirPath${File.separator}$outputFileName.txt")
-          val fetchedUrls = urlsFileSource.getLines().toSet
-          urlsFileSource.close()
+            // if finished, get the new urls
+            val urlsFileSource = scala.io.Source
+              .fromFile(s"$tmpDirPath${File.separator}$outputFileName.txt")
+            val fetchedUrls = urlsFileSource.getLines().toSet
+            urlsFileSource.close()
 
-          // filter the existing urls
-          val newUrls = fetchedUrls.filterNot(existingUrls.flatMap(_.url).toSet)
-            .filter(_.contains(new java.net.URL(sourceUrl).getHost))
+            // filter the existing urls
+            val newUrls = fetchedUrls
+              .filterNot(existingUrls.flatMap(_.url).toSet)
+              .filter(_.contains(new java.net.URL(sourceUrl).getHost))
 
-          // create mutations for new urls and send them
-          newUrls.map(
-            url =>
-              Connector.sendRequest(
-                Mutation
-                  .createUrl(
-                    Some(
-                      UrlCreateInput(
-                        Some(url),
-                        Some(
-                          SourceRelateToOneInput(
-                            connect = Some(
-                              SourceWhereUniqueInput(
-                                source.id
+            // create mutations for new urls and send them
+            newUrls.map(
+              url =>
+                Connector.sendRequest(
+                  Mutation
+                    .createUrl(
+                      Some(
+                        UrlCreateInput(
+                          Some(url),
+                          Some(
+                            SourceRelateToOneInput(
+                              connect = Some(
+                                SourceWhereUniqueInput(
+                                  source.id
+                                )
                               )
                             )
                           )
                         )
                       )
-                    )
-                  )(
-                    Url.view(
-                      Source.view(
-                        GeoLocation.view(LocationGoogle.view)
+                    )(
+                      Url.view(
+                        Source.view(
+                          GeoLocation.view(LocationGoogle.view)
+                        )
                       )
                     )
-                  )
-                  .toRequest(apiUrl)
-              )
-          )
-      }.getOrElse(Set.empty)
+                    .toRequest(apiUrl)
+                )
+            )
+        }
+        .getOrElse(Set.empty)
     })
   }
 
   private def fetchUrls(
-                         url: String,
-                         outputPath: File,
-                         outputFileName: String
-                       ) = {
+      url: String,
+      outputPath: File,
+      outputFileName: String
+  ) = {
     FetchUrlWrapper(
       fetchUrlPath.getAbsolutePath
     ).run(url, outputPath, outputFileName)
