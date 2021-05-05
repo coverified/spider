@@ -10,6 +10,7 @@ import akka.actor.typed.{ActorRef, Behavior}
 import com.typesafe.scalalogging.LazyLogging
 import info.coverified.spider.HostCrawler.HostCrawlerEvent
 import info.coverified.spider.Indexer.IndexerEvent
+import info.coverified.spider.util.UserAgentProvider
 import org.apache.commons.validator.routines.UrlValidator
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -26,8 +27,6 @@ object SiteScraper extends LazyLogging {
 
   final case class SiteContent(links: Set[URL])
 
-  private val userAgent =
-    "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1"
   private val txtHtml = "text/html"
   private val urlValidator = new UrlValidator()
 
@@ -61,7 +60,7 @@ object SiteScraper extends LazyLogging {
     val response = Jsoup
       .connect(link)
       .ignoreContentType(true)
-      .userAgent(userAgent)
+      .userAgent(UserAgentProvider.randomUserAgent)
       .execute()
 
     val contentType: String = response.contentType
