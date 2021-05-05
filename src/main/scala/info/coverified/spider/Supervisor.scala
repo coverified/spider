@@ -9,6 +9,7 @@ import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import com.typesafe.scalalogging.LazyLogging
 import info.coverified.spider.HostCrawler.HostCrawlerEvent
+import info.coverified.spider.main.Config
 
 import scala.concurrent.duration._
 import scala.language.{existentials, postfixOps}
@@ -31,18 +32,16 @@ object Supervisor extends LazyLogging {
   final case class IdleTimeout() extends SupervisorEvent
 
   final case class SupervisorData(
+      config: Config,
       host2Actor: Map[String, ActorRef[HostCrawlerEvent]] = Map.empty,
       scrapCounts: Map[URL, Int] = Map.empty,
       toScrap: Set[URL] = Set.empty,
       namespaces: Vector[String] = Vector.empty
   )
 
-  // TODO JH config values
-  val noOfScraper = 100
-
-  def apply(): Behavior[SupervisorEvent] = Behaviors.setup { ctx =>
-    ctx.setReceiveTimeout(20 seconds, IdleTimeout())
-    idle(SupervisorData())
+  def apply(cfg: Config): Behavior[SupervisorEvent] = Behaviors.setup { ctx =>
+    ctx.setReceiveTimeout(cfg.shutdownTimeout, IdleTimeout())
+    idle(SupervisorData(cfg))
   }
 
   private def idle(data: SupervisorData): Behavior[SupervisorEvent] =
@@ -63,7 +62,6 @@ object Supervisor extends LazyLogging {
             logger.debug(
               s"Received new urls from '$url': ${newUrls.mkString(", ")}"
             )
-            // todo JH maybe max number of pages
             val updatedData = newUrls
               .filterNot(alreadyScraped(_, data))
               .filter(isInNamespace(_, data))
@@ -72,7 +70,6 @@ object Supervisor extends LazyLogging {
               )
             idle(updatedData.copy(toScrap = updatedData.toScrap - url))
           case IdleTimeout() =>
-            // todo JH
             checkAndShutdown(data, actorContext.system)
         }
       case _ =>
@@ -89,7 +86,16 @@ object Supervisor extends LazyLogging {
       val actor = data.host2Actor.getOrElse(
         host,
         context
-          .spawn(HostCrawler(host, noOfScraper, context.self), s"Scraper_$host")
+          .spawn(
+            HostCrawler(
+              host,
+              data.config.scrapParallelism,
+              data.config.scrapeInterval,
+              data.config.scrapeTimeout,
+              context.self
+            ),
+            s"Scraper_$host"
+          )
       )
       actor ! HostCrawler.Scrap(url)
       data.copy(
@@ -119,8 +125,10 @@ object Supervisor extends LazyLogging {
   ): Behavior[SupervisorEvent] = {
     if (data.toScrap.isEmpty) {
       // shutdown all
-      logger.info("Idle timeout in Supervisor reached and scraping data is empty. " +
-        "Initiate shutdown ...")
+      logger.info(
+        "Idle timeout in Supervisor reached and scraping data is empty. " +
+          "Initiate shutdown ..."
+      )
       system.terminate()
     }
     idle(data)

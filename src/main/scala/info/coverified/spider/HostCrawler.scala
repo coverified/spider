@@ -11,7 +11,7 @@ import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import info.coverified.spider.Indexer.IndexerEvent
 import info.coverified.spider.SiteScraper.SiteScraperEvent
-import info.coverified.spider.Supervisor.{SupervisorEvent, noOfScraper}
+import info.coverified.spider.Supervisor.SupervisorEvent
 
 import scala.concurrent.duration._
 import scala.language.{existentials, postfixOps}
@@ -33,31 +33,33 @@ object HostCrawler extends LazyLogging {
       extends HostCrawlerEvent
 
   final case class HostCrawlerData(
+      noOfSiteScraper: Int,
+      scrapeTimeout: Timeout,
       indexer: ActorRef[IndexerEvent],
       supervisor: ActorRef[SupervisorEvent],
       siteScraper: Seq[ActorRef[SiteScraperEvent]],
       siteQueue: List[URL] = List.empty
   )
 
-  // todo JH config value
-  private val interval: FiniteDuration = 1000 millis
-  private implicit val timeout: Timeout = Timeout(3 seconds)
-
   def apply(
       host: String,
       noOfSiteScraper: Int,
+      scrapeInterval: FiniteDuration,
+      scrapeTimeout: Timeout,
       supervisor: ActorRef[SupervisorEvent]
   ): Behavior[HostCrawlerEvent] = {
     Behaviors.setup { ctx =>
       Behaviors.withTimers { timer =>
         // self timer to trigger scraping process with delay
-        timer.startTimerAtFixedRate(Process(), interval)
+        timer.startTimerAtFixedRate(Process(), scrapeInterval)
         val indexer = ctx.spawn(
           Indexer(supervisor, Paths.get(host + ".txt")),
           s"Indexer_$host"
         )
         idle(
           HostCrawlerData(
+            noOfSiteScraper,
+            scrapeTimeout,
             indexer,
             supervisor,
             (0 until noOfSiteScraper).map(
@@ -84,10 +86,10 @@ object HostCrawler extends LazyLogging {
             process(data, ctx)
           case SiteScraperSuccessful(url) =>
             logger.debug(s"Finished scraping '$url'.")
-            idle(data)
+            Behaviors.same
           case SiteScraperFailure(url, reason) =>
             data.supervisor ! Supervisor.ScrapFailure(url, reason)
-            idle(data)
+            Behaviors.same
         }
     }
 
@@ -96,8 +98,9 @@ object HostCrawler extends LazyLogging {
       ctx: ActorContext[HostCrawlerEvent]
   ): Behavior[HostCrawlerEvent] = {
     // take all site scraper available
+    implicit val responseTimeout = data.scrapeTimeout
     val processedUrls =
-      data.siteQueue.take(noOfScraper).zip(data.siteScraper).map {
+      data.siteQueue.take(data.noOfSiteScraper).zip(data.siteScraper).map {
         case (url, scraper) =>
           logger.debug(s"Scraping '$url'.")
           ctx.ask(scraper, sender => SiteScraper.Scrap(url, sender)) {
