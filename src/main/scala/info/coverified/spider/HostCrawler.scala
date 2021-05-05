@@ -17,6 +17,7 @@ import scala.concurrent.duration._
 import scala.language.{existentials, postfixOps}
 import java.net.URL
 import java.nio.file.Paths
+import scala.collection.parallel.immutable.ParVector
 import scala.util.{Failure, Success}
 
 object HostCrawler extends LazyLogging {
@@ -38,7 +39,7 @@ object HostCrawler extends LazyLogging {
       indexer: ActorRef[IndexerEvent],
       supervisor: ActorRef[SupervisorEvent],
       siteScraper: Seq[ActorRef[SiteScraperEvent]],
-      siteQueue: List[URL] = List.empty
+      siteQueue: ParVector[URL] = ParVector.empty
   )
 
   def apply(

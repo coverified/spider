@@ -56,6 +56,7 @@ dependencies {
 
 	// CORE Scala //
 	compile "org.scala-lang:scala-library:${scalaBinaryVersion}"
+	implementation "org.scala-lang.modules:scala-parallel-collections_${scalaBinaryVersion}: 1.0.2"
 
 	// CORE akka //
 	implementation platform("com.typesafe.akka:akka-bom_${scalaVersion}:2.6.14")
