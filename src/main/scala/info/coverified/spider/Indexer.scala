@@ -6,13 +6,16 @@
 package info.coverified.spider
 
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorRef, Behavior}
+import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
+import akka.stream.scaladsl.{FileIO, Source}
+import akka.util.ByteString
 import com.typesafe.scalalogging.LazyLogging
 import info.coverified.spider.SiteScraper.SiteContent
 import info.coverified.spider.Supervisor.SupervisorEvent
 
 import java.net.URL
-import scala.collection.mutable
+import java.nio.file.Path
+import java.nio.file.StandardOpenOption.{APPEND, CREATE, WRITE}
 
 object Indexer extends LazyLogging {
 
@@ -20,20 +23,29 @@ object Indexer extends LazyLogging {
 
   final case class Index(url: URL, content: SiteContent) extends IndexerEvent
 
-  var store = mutable.Set.empty[URL] // TODO: JH remove
-
-  def apply(supervisor: ActorRef[SupervisorEvent]): Behavior[IndexerEvent] =
-    idle(supervisor)
+  def apply(
+      supervisor: ActorRef[SupervisorEvent],
+      file: Path
+  ): Behavior[IndexerEvent] =
+    idle(supervisor, file)
 
   private def idle(
-      supervisor: ActorRef[SupervisorEvent]
-  ): Behavior[IndexerEvent] = Behaviors.receiveMessage {
-    case Index(url, content) =>
-      logger.debug(s"Indexed '$url'")
-      store += url
-      logger.debug(s"Store: ${store.mkString(", ")}")
-      supervisor ! Supervisor.IndexFinished(url, content.links)
-      idle(supervisor)
+      supervisor: ActorRef[SupervisorEvent],
+      file: Path
+  ): Behavior[IndexerEvent] = Behaviors.receive[IndexerEvent] {
+    case (ctx, msg) =>
+      msg match {
+        case Index(url, content) =>
+          logger.debug(s"Indexed '$url'")
+          implicit val system: ActorSystem[Nothing] = ctx.system
+          Source
+            .single(url.toString + "\n")
+            .map(t => ByteString(t))
+            .runWith(FileIO.toPath(file, Set(WRITE, APPEND, CREATE)))
+
+          supervisor ! Supervisor.IndexFinished(url, content.links)
+          idle(supervisor, file)
+      }
   }
 
 }

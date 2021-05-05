@@ -16,6 +16,7 @@ import info.coverified.spider.Supervisor.{SupervisorEvent, noOfScraper}
 import scala.concurrent.duration._
 import scala.language.{existentials, postfixOps}
 import java.net.URL
+import java.nio.file.Paths
 import scala.util.{Failure, Success}
 
 object HostCrawler extends LazyLogging {
@@ -51,7 +52,10 @@ object HostCrawler extends LazyLogging {
       Behaviors.withTimers { timer =>
         // self timer to trigger scraping process with delay
         timer.startTimerAtFixedRate(Process(), interval)
-        val indexer = ctx.spawn(Indexer(supervisor), s"Indexer_$host")
+        val indexer = ctx.spawn(
+          Indexer(supervisor, Paths.get(host + ".txt")),
+          s"Indexer_$host"
+        )
         idle(
           HostCrawlerData(
             indexer,

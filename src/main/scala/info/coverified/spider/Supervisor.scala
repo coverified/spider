@@ -5,11 +5,13 @@
 
 package info.coverified.spider
 
-import akka.actor.typed.{ActorRef, Behavior, Props}
+import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import com.typesafe.scalalogging.LazyLogging
 import info.coverified.spider.HostCrawler.HostCrawlerEvent
 
+import scala.concurrent.duration._
+import scala.language.{existentials, postfixOps}
 import java.net.URL
 
 object Supervisor extends LazyLogging {
@@ -26,16 +28,22 @@ object Supervisor extends LazyLogging {
   final case class IndexFinished(url: URL, newUrls: Set[URL])
       extends SupervisorEvent
 
+  final case class IdleTimeout() extends SupervisorEvent
+
   final case class SupervisorData(
       host2Actor: Map[String, ActorRef[HostCrawlerEvent]] = Map.empty,
       scrapCounts: Map[URL, Int] = Map.empty,
+      toScrap: Set[URL] = Set.empty,
       namespaces: Vector[String] = Vector.empty
   )
 
   // TODO JH config values
-  val noOfScraper = 10
+  val noOfScraper = 100
 
-  def apply(): Behavior[SupervisorEvent] = idle(SupervisorData())
+  def apply(): Behavior[SupervisorEvent] = Behaviors.setup { ctx =>
+    ctx.setReceiveTimeout(20 seconds, IdleTimeout())
+    idle(SupervisorData())
+  }
 
   private def idle(data: SupervisorData): Behavior[SupervisorEvent] =
     Behaviors.receive {
@@ -62,7 +70,10 @@ object Supervisor extends LazyLogging {
               .foldLeft(data)(
                 (updatedData, url) => scrap(url, actorContext, updatedData)
               )
-            checkAndShutdown(updatedData)
+            idle(updatedData.copy(toScrap = updatedData.toScrap - url))
+          case IdleTimeout() =>
+            // todo JH
+            checkAndShutdown(data, actorContext.system)
         }
       case _ =>
         Behaviors.unhandled
@@ -84,7 +95,8 @@ object Supervisor extends LazyLogging {
       data.copy(
         host2Actor = data.host2Actor + (host -> actor),
         namespaces = data.namespaces :+ host,
-        scrapCounts = countVisits(url, data.scrapCounts)
+        scrapCounts = countVisits(url, data.scrapCounts),
+        toScrap = data.toScrap + url
       )
     } else {
       logger.warn(s"Cannot get host of url: '$url'!")
@@ -102,8 +114,15 @@ object Supervisor extends LazyLogging {
     scrapCounts + (url -> (scrapCounts.getOrElse(url, 0) + 1))
 
   private def checkAndShutdown(
-      data: SupervisorData
-  ): Behavior[SupervisorEvent] =
-    // TODO JH
+      data: SupervisorData,
+      system: ActorSystem[Nothing]
+  ): Behavior[SupervisorEvent] = {
+    if (data.toScrap.isEmpty) {
+      // shutdown all
+      logger.info("Idle timeout in Supervisor reached and scraping data is empty. " +
+        "Initiate shutdown ...")
+      system.terminate()
+    }
     idle(data)
+  }
 }
