@@ -102,7 +102,6 @@ object HostCrawler extends LazyLogging {
     val processedUrls =
       data.siteQueue.take(data.noOfSiteScraper).zip(data.siteScraper).map {
         case (url, scraper) =>
-          logger.debug(s"Scraping '$url'.")
           ctx.ask(scraper, sender => SiteScraper.Scrap(url, sender)) {
             case Success(res: SiteScraperSuccessful) =>
               res
