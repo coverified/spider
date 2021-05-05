@@ -98,7 +98,7 @@ object HostCrawler extends LazyLogging {
       ctx: ActorContext[HostCrawlerEvent]
   ): Behavior[HostCrawlerEvent] = {
     // take all site scraper available
-    implicit val responseTimeout = data.scrapeTimeout
+    implicit val responseTimeout: Timeout = data.scrapeTimeout
     val processedUrls =
       data.siteQueue.take(data.noOfSiteScraper).zip(data.siteScraper).map {
         case (url, scraper) =>
