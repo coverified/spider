@@ -30,7 +30,7 @@ configurations {
 }
 
 repositories {
-	jcenter() //searches in bintray's repository 'jCenter', which contains Maven Central
+	mavenCentral()
 	maven { url 'https://jitpack.io' }
 }
 
@@ -56,7 +56,7 @@ dependencies {
 
 	// CORE Scala //
 	compile "org.scala-lang:scala-library:${scalaBinaryVersion}"
-	implementation "org.scala-lang.modules:scala-parallel-collections_${scalaBinaryVersion}: 1.0.2"
+	implementation "org.scala-lang.modules:scala-parallel-collections_${scalaVersion}: 1.0.2"
 
 	// CORE akka //
 	implementation platform("com.typesafe.akka:akka-bom_${scalaVersion}:2.6.14")
