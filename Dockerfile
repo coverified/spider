@@ -6,8 +6,8 @@ RUN ./gradlew shadowJar \
     --no-daemon \
     -Dorg.gradle.jvmargs="-XX:+UseContainerSupport -Xmx1024m -XX:MaxPermSize=256m"
 
-ARG PROCECT_NAME
-ARG CLASS_NAME
+ARG PROCECT_NAME=spider_service
+ARG CLASS_NAME=info.coverified.spider.main.Run
 ARG SENTRY_DSN
 ARG API_URL
 
