@@ -45,6 +45,7 @@ release-image:
     - docker push $CONTAINER_RELEASE_IMAGE
   only:
     - master
+    - main
 
 # TODO: deployment
 #deploy:
