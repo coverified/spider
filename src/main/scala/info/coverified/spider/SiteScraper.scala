@@ -57,6 +57,9 @@ object SiteScraper extends LazyLogging {
 
   private def scrape(url: URL): Option[SiteContent] = {
     val link: String = url.toString
+
+    // todo JH try-catch IO Exception
+    //
     val response = Jsoup
       .connect(link)
       .ignoreContentType(true)

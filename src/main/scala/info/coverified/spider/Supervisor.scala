@@ -1,7 +1,7 @@
 /**
  * © 2021. CoVerified,
  * Diehl, Fetzer, Hiry, Kilian, Mayer, Schlittenbauer, Schweikert, Vollnhals, Weise GbR
- **/
+ * */
 
 package info.coverified.spider
 
@@ -11,7 +11,6 @@ import com.typesafe.scalalogging.LazyLogging
 import info.coverified.spider.HostCrawler.HostCrawlerEvent
 import info.coverified.spider.main.Config
 
-import scala.concurrent.duration._
 import scala.language.{existentials, postfixOps}
 import java.net.URL
 
@@ -21,23 +20,23 @@ object Supervisor extends LazyLogging {
 
   final case class Start(url: URL) extends SupervisorEvent
 
-  final case class ScrapSuccessful(url: URL) extends SupervisorEvent
-
   final case class ScrapFailure(url: URL, reason: Throwable)
-      extends SupervisorEvent
+    extends SupervisorEvent
 
   final case class IndexFinished(url: URL, newUrls: Set[URL])
-      extends SupervisorEvent
+    extends SupervisorEvent
 
   final case class IdleTimeout() extends SupervisorEvent
 
   final case class SupervisorData(
-      config: Config,
-      host2Actor: Map[String, ActorRef[HostCrawlerEvent]] = Map.empty,
-      scrapCounts: Map[URL, Int] = Map.empty,
-      toScrap: Set[URL] = Set.empty,
-      namespaces: Vector[String] = Vector.empty
-  )
+                                   config: Config,
+                                   host2Actor: Map[String, ActorRef[HostCrawlerEvent]] = Map.empty,
+                                   scrapCounts: Map[URL, Int] = Map.empty,
+                                   toScrape: Set[URL] = Set.empty,
+                                   namespaces: Vector[String] = Vector.empty
+                                 )
+
+  private val maxRetries = 0 // todo JH config value
 
   def apply(cfg: Config): Behavior[SupervisorEvent] = Behaviors.setup { ctx =>
     ctx.setReceiveTimeout(cfg.shutdownTimeout, IdleTimeout())
@@ -50,14 +49,20 @@ object Supervisor extends LazyLogging {
         msg match {
           case Start(url) =>
             logger.info(s"Starting indexing for '$url' ...")
-            idle(scrap(url, actorContext, data))
-          case ScrapSuccessful(url) =>
-            logger.info(s"Successfully scraped '$url'.")
-            idle(data)
+            idle(scrape(url, actorContext, data))
           case ScrapFailure(url, reason) =>
-            logger.error(s"Scraping failed for $url! Reason = $reason")
-            // TODO: JH -> retry
-            idle(data)
+            val updatedData = data.scrapCounts.get(url) match {
+              case Some(scrapeCount) if scrapeCount <= maxRetries =>
+                logger.warn(s"Scraping failed. Re-scheduling! url: $url Reason = $reason")
+                scrape(url, actorContext, data)
+              case Some(_) =>
+                logger.debug(s"Cannot re-schedule '$url' for scraping. Max retries reached!")
+                data
+              case None =>
+                logger.error(s"Cannot re-schedule '$url' for scraping. Unknown url!")
+                data
+            }
+            idle(updatedData)
           case IndexFinished(url, newUrls) =>
             logger.debug(
               s"Received new urls from '$url': ${newUrls.mkString(", ")}"
@@ -66,9 +71,9 @@ object Supervisor extends LazyLogging {
               .filterNot(alreadyScraped(_, data))
               .filter(isInNamespace(_, data))
               .foldLeft(data)(
-                (updatedData, url) => scrap(url, actorContext, updatedData)
+                (updatedData, url) => scrape(url, actorContext, updatedData)
               )
-            idle(updatedData.copy(toScrap = updatedData.toScrap - url))
+            idle(updatedData.copy(toScrape = updatedData.toScrape - url))
           case IdleTimeout() =>
             checkAndShutdown(data, actorContext.system)
         }
@@ -76,11 +81,11 @@ object Supervisor extends LazyLogging {
         Behaviors.unhandled
     }
 
-  private def scrap(
-      url: URL,
-      context: ActorContext[SupervisorEvent],
-      data: SupervisorData
-  ): SupervisorData = {
+  private def scrape(
+                      url: URL,
+                      context: ActorContext[SupervisorEvent],
+                      data: SupervisorData
+                    ): SupervisorData = {
     val host = url.getHost
     if (host.nonEmpty) {
       val actor = data.host2Actor.getOrElse(
@@ -102,7 +107,7 @@ object Supervisor extends LazyLogging {
         host2Actor = data.host2Actor + (host -> actor),
         namespaces = data.namespaces :+ host,
         scrapCounts = countVisits(url, data.scrapCounts),
-        toScrap = data.toScrap + url
+        toScrape = data.toScrape + url
       )
     } else {
       logger.warn(s"Cannot get host of url: '$url'!")
@@ -120,10 +125,10 @@ object Supervisor extends LazyLogging {
     scrapCounts + (url -> (scrapCounts.getOrElse(url, 0) + 1))
 
   private def checkAndShutdown(
-      data: SupervisorData,
-      system: ActorSystem[Nothing]
-  ): Behavior[SupervisorEvent] = {
-    if (data.toScrap.isEmpty) {
+                                data: SupervisorData,
+                                system: ActorSystem[Nothing]
+                              ): Behavior[SupervisorEvent] = {
+    if (data.toScrape.isEmpty) {
       // shutdown all
       logger.info(
         "Idle timeout in Supervisor reached and scraping data is empty. " +
