@@ -28,9 +28,9 @@ object HostCrawler extends LazyLogging {
 
   final case class Process() extends HostCrawlerEvent
 
-  final case class SiteScraperSuccessful(url: URL) extends HostCrawlerEvent
+  final case class SiteScrapeSuccessful(url: URL) extends HostCrawlerEvent
 
-  final case class SiteScraperFailure(url: URL, reason: Throwable)
+  final case class SiteScrapeFailure(url: URL, reason: Throwable)
       extends HostCrawlerEvent
 
   final case class HostCrawlerData(
@@ -85,10 +85,10 @@ object HostCrawler extends LazyLogging {
             )
           case Process() =>
             process(data, ctx)
-          case SiteScraperSuccessful(url) =>
+          case SiteScrapeSuccessful(url) =>
             logger.debug(s"Finished scraping '$url'.")
             Behaviors.same
-          case SiteScraperFailure(url, reason) =>
+          case SiteScrapeFailure(url, reason) =>
             data.supervisor ! Supervisor.ScrapFailure(url, reason)
             Behaviors.same
         }
@@ -104,17 +104,17 @@ object HostCrawler extends LazyLogging {
       data.siteQueue.take(data.noOfSiteScraper).zip(data.siteScraper).map {
         case (url, scraper) =>
           ctx.ask(scraper, sender => SiteScraper.Scrap(url, sender)) {
-            case Success(res: SiteScraperSuccessful) =>
+            case Success(res: SiteScrapeSuccessful) =>
               res
             case Success(invalid) =>
-              SiteScraperFailure(
+              SiteScrapeFailure(
                 url,
                 new IllegalArgumentException(
                   s"Invalid response from '${scraper.path}' on scraping request: $invalid"
                 )
               )
             case Failure(exception) =>
-              SiteScraperFailure(url, exception)
+              SiteScrapeFailure(url, exception)
           }
           url
       }

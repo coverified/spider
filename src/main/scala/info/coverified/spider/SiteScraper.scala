@@ -42,10 +42,10 @@ object SiteScraper extends LazyLogging {
 
       maybeContent match {
         case Some(siteContent) =>
-          sender ! HostCrawler.SiteScraperSuccessful(url)
+          sender ! HostCrawler.SiteScrapeSuccessful(url)
           indexer ! Indexer.Index(url, siteContent)
         case None =>
-          sender ! HostCrawler.SiteScraperFailure(
+          sender ! HostCrawler.SiteScrapeFailure(
             url,
             new IllegalArgumentException(
               s"Cannot extract content data from '$url'"
