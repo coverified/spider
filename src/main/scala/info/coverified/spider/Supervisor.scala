@@ -74,6 +74,7 @@ object Supervisor extends LazyLogging {
               s"Received new urls from '$url': ${newUrls.mkString(", ")}"
             )
             val updatedData = newUrls
+              .map(clean)
               .filterNot(alreadyScraped(_, data))
               .filter(inNamespaces(_, data))
               .foldLeft(data)(
@@ -112,7 +113,7 @@ object Supervisor extends LazyLogging {
       data.copy(
         host2Actor = data.host2Actor + (host -> actor),
         namespaces = data.namespaces :+ host,
-        scrapCounts = countVisits(url, data.scrapCounts),
+        scrapCounts = countVisits(clean(url), data.scrapCounts),
         toScrape = data.toScrape + url
       )
     } else {
@@ -129,6 +130,8 @@ object Supervisor extends LazyLogging {
 
   private def countVisits(url: URL, scrapCounts: Map[URL, Int]): Map[URL, Int] =
     scrapCounts + (url -> (scrapCounts.getOrElse(url, 0) + 1))
+
+  private def clean(url: URL) = new URL(url.toString.stripSuffix("/"))
 
   private def checkAndShutdown(
       data: SupervisorData,
