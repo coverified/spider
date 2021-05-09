@@ -87,7 +87,9 @@ object SiteScraper extends LazyLogging {
     val doc = siteResponse.parse()
     val toIndex = addToIndex(doc, url)
     val links: Set[URL] = SiteExtractor.extractAbsLinks(doc)
-    SiteContent(links, toIndex)
+    val cLinks: Set[URL] = SiteExtractor.extractCanonicalLinksFromBody(doc)
+
+    SiteContent(links ++ cLinks, toIndex)
   }
 
   private def addToIndex(doc: Document, url: URL): Boolean = {

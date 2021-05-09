@@ -6,9 +6,10 @@
 package info.coverified.spider.util
 
 import org.apache.commons.validator.routines.UrlValidator
-import org.jsoup.nodes.Document
+import org.jsoup.nodes.{Document, Element}
 
 import java.net.URL
+import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
 object SiteExtractor {
@@ -24,10 +25,14 @@ object SiteExtractor {
       .map(new URL(_))
       .toSet
 
-  def canonicalLinkFromHead(doc: Document): Option[URL] = {
-    doc
-      .head()
-      .getElementsByTag("link")
+  def extractCanonicalLinksFromBody(doc: Document): Set[URL] =
+    canonicalLinks(doc.body()).toSet
+
+  def canonicalLinkFromHead(doc: Document): Option[URL] =
+    canonicalLinks(doc.head()).headOption
+
+  private def canonicalLinks(e: Element): mutable.Buffer[URL] =
+    e.getElementsByTag("link")
       .asScala
       .filter(
         e =>
@@ -39,7 +44,5 @@ object SiteExtractor {
       .map(_.absUrl("href"))
       .filter(urlValidator.isValid)
       .map(new URL(_))
-      .headOption
-  }
 
 }

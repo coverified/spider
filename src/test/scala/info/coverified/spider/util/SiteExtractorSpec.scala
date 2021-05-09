@@ -15,7 +15,7 @@ class SiteExtractorSpec extends should.Matchers with AnyWordSpecLike {
 
   "The SiteExtractor" should {
 
-    "identify valid canonical links correctly" in {
+    "identify valid canonical links in page heads correctly" in {
 
       val canonicalHtml =
         """<html>
@@ -35,7 +35,7 @@ class SiteExtractorSpec extends should.Matchers with AnyWordSpecLike {
 
     }
 
-    "return none if no canonical links are available" in {
+    "return none if no canonical links in page heads are available" in {
       val canonicalHtml =
         """<html>
           |<head>
@@ -45,6 +45,41 @@ class SiteExtractorSpec extends should.Matchers with AnyWordSpecLike {
       val doc = Jsoup.parse(canonicalHtml)
 
       SiteExtractor.canonicalLinkFromHead(doc) shouldBe None
+    }
+
+    "identify valid canonical links in page body correctly" in {
+
+      val canonicalHtml =
+        """<html>
+          |<head>
+          |    <link rel="canonical" href="https://example.com/page.html">
+          |</head>
+          |<body
+          |    <link rel="canonical" href="https://example.com/page1.html">
+          |    <link rel="canonical" href="https://example.com/page2.html">
+          |</body>
+          |</html>""".stripMargin
+
+      val doc = Jsoup.parse(canonicalHtml)
+
+      SiteExtractor.extractCanonicalLinksFromBody(doc) shouldBe Set(
+        new URL("https://example.com/page1.html"),
+        new URL("https://example.com/page2.html")
+      )
+
+    }
+
+    "return none if no canonical links in page body are available" in {
+      val canonicalHtml =
+        """<html>
+          |<head>
+          | <link rel="canonical" href="https://example.com/page1.html">
+          |</head>
+          |</html>""".stripMargin
+
+      val doc = Jsoup.parse(canonicalHtml)
+
+      SiteExtractor.extractCanonicalLinksFromBody(doc) shouldBe Set.empty
     }
 
   }
