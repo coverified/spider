@@ -35,7 +35,7 @@ object Indexer extends LazyLogging {
   ): Behavior[IndexerEvent] = Behaviors.receive[IndexerEvent] {
     case (ctx, msg) =>
       msg match {
-        case Index(url, content) =>
+        case Index(url, content) if content.addToIndex =>
           logger.debug(s"Indexed '$url'")
           implicit val system: ActorSystem[Nothing] = ctx.system
           Source
@@ -45,6 +45,12 @@ object Indexer extends LazyLogging {
 
           supervisor ! Supervisor.IndexFinished(url, content.links)
           idle(supervisor, file)
+
+        case Index(url, content) =>
+          // just process the provided links, but do not index the processed url
+          supervisor ! Supervisor.IndexFinished(url, content.links)
+          idle(supervisor, file)
+
       }
   }
 

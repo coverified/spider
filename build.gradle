@@ -4,6 +4,7 @@ plugins {
 	id 'scala' // scala support
 	id 'com.diffplug.spotless' version '5.7.0'//code format
 	id "com.github.johnrengelman.shadow" version "5.1.0" // fat jar
+	id "com.github.maiflai.scalatest" version "0.31" // run scalatest without specific spec task
 }
 
 
@@ -52,10 +53,10 @@ dependencies {
 	implementation group: 'com.github.ghostdogpr', name: "caliban-tools_${scalaVersion}", version: '0.9.5'
 
 	// cmd args parser //
-	compile "com.github.scopt:scopt_${scalaVersion}:4.0.0"
+	implementation "com.github.scopt:scopt_${scalaVersion}:4.0.0"
 
 	// CORE Scala //
-	compile "org.scala-lang:scala-library:${scalaBinaryVersion}"
+	implementation "org.scala-lang:scala-library:${scalaBinaryVersion}"
 	implementation "org.scala-lang.modules:scala-parallel-collections_${scalaVersion}: 1.0.2"
 
 	// CORE akka //
@@ -70,5 +71,9 @@ dependencies {
 
 	// url validator
 	implementation group: 'commons-validator', name: 'commons-validator', version: '1.7'
+
+	// testing
+	testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.8"
+
 
 }

@@ -10,13 +10,13 @@ import akka.actor.typed.{ActorRef, Behavior}
 import com.typesafe.scalalogging.LazyLogging
 import info.coverified.spider.HostCrawler.HostCrawlerEvent
 import info.coverified.spider.Indexer.IndexerEvent
-import info.coverified.spider.util.UserAgentProvider
-import org.apache.commons.validator.routines.UrlValidator
-import org.jsoup.{Jsoup, UnsupportedMimeTypeException}
+import info.coverified.spider.util.{SiteExtractor, UserAgentProvider}
+import org.jsoup.Connection.Response
 import org.jsoup.nodes.Document
+import org.jsoup.{Jsoup, UnsupportedMimeTypeException}
 
+import java.io.IOException
 import java.net.{MalformedURLException, URL}
-import scala.jdk.CollectionConverters._
 
 object SiteScraper extends LazyLogging {
 
@@ -25,10 +25,9 @@ object SiteScraper extends LazyLogging {
   final case class Scrap(url: URL, sender: ActorRef[HostCrawlerEvent])
       extends SiteScraperEvent
 
-  final case class SiteContent(links: Set[URL])
+  final case class SiteContent(links: Set[URL], addToIndex: Boolean = true)
 
   private val txtHtml = "text/html"
-  private val urlValidator = new UrlValidator()
 
   def apply(indexer: ActorRef[IndexerEvent]): Behavior[SiteScraperEvent] =
     idle(indexer)
@@ -66,30 +65,34 @@ object SiteScraper extends LazyLogging {
 
       val contentType: String = response.contentType
       Option.when(contentType.startsWith(txtHtml)) {
-        val doc = response.parse()
-        val links: Set[URL] = extractAbsLinks(doc)
-        SiteContent(links)
+        extractContentInformation(response, url)
       }
     } catch {
       case _: UnsupportedMimeTypeException =>
-        // unsupported mime types are not re-scheduled
+        // unsupported mime types are not re-scheduled, but indexed
         Some(SiteContent(Set.empty))
       case _: MalformedURLException =>
-        // malformed urls are not re-scheduled
+        // malformed urls are not re-scheduled, but indexed
         Some(SiteContent(Set.empty))
-      case _ =>
-        // everything else will be re-scheduled
+      case _: IOException =>
+        // everything else (e.g. timeout) will be re-scheduled and not indexed yet
         None
     }
   }
 
-  private def extractAbsLinks(doc: Document): Set[URL] =
-    doc
-      .getElementsByTag("a")
-      .asScala
-      .map(e => e.absUrl("href"))
-      .filter(s => urlValidator.isValid(s))
-      .map(link => new URL(link))
-      .toSet
+  private def extractContentInformation(
+      siteResponse: Response,
+      url: URL
+  ): SiteContent = {
+    val doc = siteResponse.parse()
+    val toIndex = addToIndex(doc, url)
+    val links: Set[URL] = SiteExtractor.extractAbsLinks(doc)
+    SiteContent(links, toIndex)
+  }
+
+  private def addToIndex(doc: Document, url: URL): Boolean = {
+    // no canonical = true, canonical != url = false, true otherwise
+    SiteExtractor.canonicalLinkFromHead(doc).forall(_.equals(url))
+  }
 
 }
