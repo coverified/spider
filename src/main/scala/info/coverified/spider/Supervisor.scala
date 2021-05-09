@@ -1,7 +1,7 @@
 /**
  * © 2021. CoVerified,
  * Diehl, Fetzer, Hiry, Kilian, Mayer, Schlittenbauer, Schweikert, Vollnhals, Weise GbR
- * */
+ **/
 
 package info.coverified.spider
 
@@ -21,20 +21,20 @@ object Supervisor extends LazyLogging {
   final case class Start(url: URL) extends SupervisorEvent
 
   final case class ScrapFailure(url: URL, reason: Throwable)
-    extends SupervisorEvent
+      extends SupervisorEvent
 
   final case class IndexFinished(url: URL, newUrls: Set[URL])
-    extends SupervisorEvent
+      extends SupervisorEvent
 
   final case class IdleTimeout() extends SupervisorEvent
 
   final case class SupervisorData(
-                                   config: Config,
-                                   host2Actor: Map[String, ActorRef[HostCrawlerEvent]] = Map.empty,
-                                   scrapCounts: Map[URL, Int] = Map.empty,
-                                   toScrape: Set[URL] = Set.empty,
-                                   namespaces: Vector[String] = Vector.empty
-                                 )
+      config: Config,
+      host2Actor: Map[String, ActorRef[HostCrawlerEvent]] = Map.empty,
+      scrapCounts: Map[URL, Int] = Map.empty,
+      toScrape: Set[URL] = Set.empty,
+      namespaces: Vector[String] = Vector.empty
+  )
 
   private val maxRetries = 0 // todo JH config value
 
@@ -53,13 +53,19 @@ object Supervisor extends LazyLogging {
           case ScrapFailure(url, reason) =>
             val updatedData = data.scrapCounts.get(url) match {
               case Some(scrapeCount) if scrapeCount <= maxRetries =>
-                logger.warn(s"Scraping failed. Re-scheduling! url: $url Reason = $reason")
+                logger.warn(
+                  s"Scraping failed. Re-scheduling! url: $url Reason = $reason"
+                )
                 scrape(url, actorContext, data)
               case Some(_) =>
-                logger.debug(s"Cannot re-schedule '$url' for scraping. Max retries reached!")
+                logger.debug(
+                  s"Cannot re-schedule '$url' for scraping. Max retries reached!"
+                )
                 data
               case None =>
-                logger.error(s"Cannot re-schedule '$url' for scraping. Unknown url!")
+                logger.error(
+                  s"Cannot re-schedule '$url' for scraping. Unknown url!"
+                )
                 data
             }
             idle(updatedData)
@@ -69,7 +75,7 @@ object Supervisor extends LazyLogging {
             )
             val updatedData = newUrls
               .filterNot(alreadyScraped(_, data))
-              .filter(isInNamespace(_, data))
+              .filter(inNamespaces(_, data))
               .foldLeft(data)(
                 (updatedData, url) => scrape(url, actorContext, updatedData)
               )
@@ -82,10 +88,10 @@ object Supervisor extends LazyLogging {
     }
 
   private def scrape(
-                      url: URL,
-                      context: ActorContext[SupervisorEvent],
-                      data: SupervisorData
-                    ): SupervisorData = {
+      url: URL,
+      context: ActorContext[SupervisorEvent],
+      data: SupervisorData
+  ): SupervisorData = {
     val host = url.getHost
     if (host.nonEmpty) {
       val actor = data.host2Actor.getOrElse(
@@ -118,16 +124,16 @@ object Supervisor extends LazyLogging {
   private def alreadyScraped(url: URL, data: SupervisorData): Boolean =
     data.scrapCounts.contains(url)
 
-  private def isInNamespace(url: URL, data: SupervisorData): Boolean =
+  private def inNamespaces(url: URL, data: SupervisorData): Boolean =
     data.namespaces.contains(url.getHost)
 
   private def countVisits(url: URL, scrapCounts: Map[URL, Int]): Map[URL, Int] =
     scrapCounts + (url -> (scrapCounts.getOrElse(url, 0) + 1))
 
   private def checkAndShutdown(
-                                data: SupervisorData,
-                                system: ActorSystem[Nothing]
-                              ): Behavior[SupervisorEvent] = {
+      data: SupervisorData,
+      system: ActorSystem[Nothing]
+  ): Behavior[SupervisorEvent] = {
     if (data.toScrape.isEmpty) {
       // shutdown all
       logger.info(

@@ -12,10 +12,10 @@ import info.coverified.spider.HostCrawler.HostCrawlerEvent
 import info.coverified.spider.Indexer.IndexerEvent
 import info.coverified.spider.util.UserAgentProvider
 import org.apache.commons.validator.routines.UrlValidator
-import org.jsoup.Jsoup
+import org.jsoup.{Jsoup, UnsupportedMimeTypeException}
 import org.jsoup.nodes.Document
 
-import java.net.URL
+import java.net.{MalformedURLException, URL}
 import scala.jdk.CollectionConverters._
 
 object SiteScraper extends LazyLogging {
@@ -57,20 +57,29 @@ object SiteScraper extends LazyLogging {
 
   private def scrape(url: URL): Option[SiteContent] = {
     val link: String = url.toString
+    try {
+      val response = Jsoup
+        .connect(link)
+        .ignoreContentType(true)
+        .userAgent(UserAgentProvider.randomUserAgent)
+        .execute()
 
-    // todo JH try-catch IO Exception
-    //
-    val response = Jsoup
-      .connect(link)
-      .ignoreContentType(true)
-      .userAgent(UserAgentProvider.randomUserAgent)
-      .execute()
-
-    val contentType: String = response.contentType
-    Option.when(contentType.startsWith(txtHtml)) {
-      val doc = response.parse()
-      val links: Set[URL] = extractAbsLinks(doc)
-      SiteContent(links)
+      val contentType: String = response.contentType
+      Option.when(contentType.startsWith(txtHtml)) {
+        val doc = response.parse()
+        val links: Set[URL] = extractAbsLinks(doc)
+        SiteContent(links)
+      }
+    } catch {
+      case _: UnsupportedMimeTypeException =>
+        // unsupported mime types are not re-scheduled
+        Some(SiteContent(Set.empty))
+      case _: MalformedURLException =>
+        // malformed urls are not re-scheduled
+        Some(SiteContent(Set.empty))
+      case _ =>
+        // everything else will be re-scheduled
+        None
     }
   }
 
