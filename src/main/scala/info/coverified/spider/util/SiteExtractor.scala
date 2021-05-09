@@ -20,7 +20,24 @@ object SiteExtractor {
     doc
       .getElementsByTag("a")
       .asScala
-      .map(e => e.absUrl("href"))
+      .map(_.absUrl("href"))
+      .filter(urlValidator.isValid)
+      .map(new URL(_))
+      .toSet
+
+  def extractHRefLang(doc: Document): Set[URL] =
+    doc
+      .getElementsByTag("link")
+      .asScala
+      .filter(
+        e =>
+          e.attributes().hasDeclaredValueForKeyIgnoreCase("rel") && e
+            .attributes()
+            .hasDeclaredValueForKeyIgnoreCase("hreflang") && e
+            .attributes()
+            .hasDeclaredValueForKeyIgnoreCase("href")
+      )
+      .map(_.absUrl("href"))
       .filter(urlValidator.isValid)
       .map(new URL(_))
       .toSet
