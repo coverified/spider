@@ -36,6 +36,7 @@ object Indexer extends LazyLogging {
     case (ctx, msg) =>
       msg match {
         case Index(url, content) if content.addToIndex =>
+          // process new urls and write out/index the processed url
           logger.debug(s"Indexed '$url'")
           implicit val system: ActorSystem[Nothing] = ctx.system
           Source
