@@ -94,7 +94,7 @@ object SiteScraper extends LazyLogging {
   }
 
   private def addToIndex(doc: Document, url: URL): Boolean = {
-    // no canonical = true, canonical != url = false, true otherwise
+    // no canonical = true, canonical == url = true, canonical != url = false
     SiteExtractor.canonicalLinkFromHead(doc).forall(_.equals(url))
   }
 
