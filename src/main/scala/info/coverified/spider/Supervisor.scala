@@ -59,12 +59,12 @@ object Supervisor extends LazyLogging {
                 scrape(url, actorContext, data)
               case Some(_) =>
                 logger.debug(
-                  s"Cannot re-schedule '$url' for scraping. Max retries reached!"
+                  s"Cannot re-schedule '$url' for scraping. Max retries reached! Error = $reason"
                 )
                 data
               case None =>
                 logger.error(
-                  s"Cannot re-schedule '$url' for scraping. Unknown url!"
+                  s"Cannot re-schedule '$url' for scraping. Unknown url! Error = $reason"
                 )
                 data
             }
