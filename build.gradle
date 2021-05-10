@@ -1,9 +1,11 @@
+import com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer
+
 plugins {
 	id 'groovy' // groovy support
 	id 'java' // java support
 	id 'scala' // scala support
 	id 'com.diffplug.spotless' version '5.7.0'//code format
-	id "com.github.johnrengelman.shadow" version "5.1.0" // fat jar
+	id "com.github.johnrengelman.shadow" version "7.0.0" // fat jar
 	id "com.github.maiflai.scalatest" version "0.31" // run scalatest without specific spec task
 }
 
@@ -76,4 +78,11 @@ dependencies {
 	testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.8"
 
 
+}
+
+shadowJar {
+	transform(AppendingTransformer) {
+		resource = 'reference.conf'
+	}
+	with jar
 }
