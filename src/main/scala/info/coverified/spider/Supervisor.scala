@@ -13,6 +13,7 @@ import info.coverified.spider.main.Config
 
 import scala.language.{existentials, postfixOps}
 import java.net.URL
+import java.util.Date
 
 object Supervisor extends LazyLogging {
 
@@ -30,6 +31,7 @@ object Supervisor extends LazyLogging {
 
   final case class SupervisorData(
       config: Config,
+      startDate: Long = System.currentTimeMillis(),
       host2Actor: Map[String, ActorRef[HostCrawlerEvent]] = Map.empty,
       scrapCounts: Map[URL, Int] = Map.empty,
       toScrape: Set[URL] = Set.empty,
@@ -58,7 +60,7 @@ object Supervisor extends LazyLogging {
                 )
                 scrape(url, actorContext, data)
               case Some(_) =>
-                logger.debug(
+                logger.warn(
                   s"Cannot re-schedule '$url' for scraping. Max retries reached! Error = $reason"
                 )
                 data
@@ -70,16 +72,20 @@ object Supervisor extends LazyLogging {
             }
             idle(updatedData)
           case IndexFinished(url, newUrls) =>
-            logger.debug(
-              s"Received new urls from '$url': ${newUrls.mkString(", ")}"
-            )
-            val updatedData = newUrls
+            val uniqueNewUrls = newUrls
               .map(clean)
               .filterNot(alreadyScraped(_, data))
               .filter(inNamespaces(_, data))
+            val updatedData = uniqueNewUrls
               .foldLeft(data)(
                 (updatedData, url) => scrape(url, actorContext, updatedData)
               )
+            logger.info(
+              s"Received ${newUrls.size} (new: ${uniqueNewUrls.size}) urls."
+            )
+            logger.debug(
+              s"Received ${newUrls.size} (new: ${uniqueNewUrls.size}) urls from '$url'."
+            )
             idle(updatedData.copy(toScrape = updatedData.toScrape - url))
           case IdleTimeout() =>
             checkAndShutdown(data, actorContext.system)
@@ -142,6 +148,14 @@ object Supervisor extends LazyLogging {
       logger.info(
         "Idle timeout in Supervisor reached and scraping data is empty. " +
           "Initiate shutdown ..."
+      )
+      logger.info("Stats:")
+      logger.info(s"Start: ${new Date(data.startDate)}")
+      logger.info(
+        s"End: ${new Date(System.currentTimeMillis() - data.config.shutdownTimeout.toMillis)}"
+      )
+      logger.info(
+        s"Duration: ${(System.currentTimeMillis() - data.config.shutdownTimeout.toMillis - data.startDate) / 1000}s"
       )
       system.terminate()
     }

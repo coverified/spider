@@ -10,13 +10,17 @@ import akka.actor.typed.{ActorRef, Behavior}
 import com.typesafe.scalalogging.LazyLogging
 import info.coverified.spider.HostCrawler.HostCrawlerEvent
 import info.coverified.spider.Indexer.IndexerEvent
+import info.coverified.spider.exception.UnsupportedContentTypeException
 import info.coverified.spider.util.{SiteExtractor, UserAgentProvider}
 import org.jsoup.Connection.Response
 import org.jsoup.nodes.Document
-import org.jsoup.{Jsoup, UnsupportedMimeTypeException}
+import org.jsoup.{HttpStatusException, Jsoup, UnsupportedMimeTypeException}
 
 import java.io.IOException
 import java.net.{MalformedURLException, URL}
+import scala.util.{Failure, Success, Try}
+
+// todo scrape timeout to jsoup from config
 
 object SiteScraper extends LazyLogging {
 
@@ -40,21 +44,19 @@ object SiteScraper extends LazyLogging {
       val maybeContent = scrape(url)
 
       maybeContent match {
-        case Some(siteContent) =>
-          sender ! HostCrawler.SiteScrapeSuccessful(url)
+        case Success(siteContent) =>
           indexer ! Indexer.Index(url, siteContent)
-        case None =>
+        case Failure(exception) =>
+          // report back to host crawler
           sender ! HostCrawler.SiteScrapeFailure(
             url,
-            new IllegalArgumentException(
-              s"Cannot extract content data from '$url'"
-            )
+            exception
           )
       }
       idle(indexer)
   }
 
-  private def scrape(url: URL): Option[SiteContent] = {
+  private def scrape(url: URL): Try[SiteContent] = {
     val link: String = url.toString
     try {
       val response = Jsoup
@@ -64,19 +66,29 @@ object SiteScraper extends LazyLogging {
         .execute()
 
       val contentType: String = response.contentType
-      Option.when(contentType.startsWith(txtHtml)) {
-        extractContentInformation(response, url)
+      if (contentType.startsWith(txtHtml)) {
+        Success(extractContentInformation(response, url))
+      } else {
+        throw new UnsupportedContentTypeException(
+          s"Unsupported content type: $contentType"
+        ) // handled below
       }
     } catch {
       case _: UnsupportedMimeTypeException =>
         // unsupported mime types are not re-scheduled, but indexed
-        Some(SiteContent(Set.empty))
+        Success(SiteContent(Set.empty))
       case _: MalformedURLException =>
         // malformed urls are not re-scheduled, but indexed
-        Some(SiteContent(Set.empty))
-      case _: IOException =>
+        Success(SiteContent(Set.empty))
+      case ex: HttpStatusException if ex.getStatusCode != 200 =>
+        // page not found is not re-scheduled and not indexed
+        Success(SiteContent(Set.empty, addToIndex = false))
+      case _: UnsupportedContentTypeException =>
+        // unsupported content is not re-scheduled, but indexed
+        Success(SiteContent(Set.empty))
+      case ex: IOException =>
         // everything else (e.g. timeout) will be re-scheduled and not indexed yet
-        None
+        Failure(ex)
     }
   }
 

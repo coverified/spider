@@ -29,10 +29,10 @@ object Config extends LazyLogging {
 
   // all time values in milliseconds
   private val defaultParams: Map[String, Int] = Map(
-    SCRAPE_PARALLELISM -> 10,
-    SCRAPE_INTERVAL -> 1000,
-    SCRAPE_TIMEOUT -> 3000,
-    SHUTDOWN_TIMEOUT -> 10000
+    SCRAPE_PARALLELISM -> 100,
+    SCRAPE_INTERVAL -> 100,
+    SCRAPE_TIMEOUT -> 15000,
+    SHUTDOWN_TIMEOUT -> 15000
   )
 
   private val envParams: Map[String, String] =
