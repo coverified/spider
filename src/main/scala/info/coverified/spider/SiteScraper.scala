@@ -10,10 +10,8 @@ import akka.actor.typed.{ActorRef, Behavior}
 import com.typesafe.scalalogging.LazyLogging
 import info.coverified.spider.HostCrawler.HostCrawlerEvent
 import info.coverified.spider.Indexer.IndexerEvent
-import info.coverified.spider.exception.UnsupportedContentTypeException
-import info.coverified.spider.util.{SiteExtractor, UserAgentProvider}
-import org.jsoup.Connection.Response
-import org.jsoup.nodes.Document
+import info.coverified.spider.util.CoVerifiedSpiderFilter.RichResponse
+import info.coverified.spider.util.UserAgentProvider
 import org.jsoup.{HttpStatusException, Jsoup, UnsupportedMimeTypeException}
 
 import java.io.IOException
@@ -29,9 +27,7 @@ object SiteScraper extends LazyLogging {
   final case class Scrap(url: URL, sender: ActorRef[HostCrawlerEvent])
       extends SiteScraperEvent
 
-  final case class SiteContent(links: Set[URL], addToIndex: Boolean = true)
-
-  private val txtHtml = "text/html"
+  final case class SiteContent(links: Set[URL])
 
   def apply(indexer: ActorRef[IndexerEvent]): Behavior[SiteScraperEvent] =
     idle(indexer)
@@ -44,71 +40,56 @@ object SiteScraper extends LazyLogging {
       val maybeContent = scrape(url)
 
       maybeContent match {
-        case Success(siteContent) =>
+        case Success(Some(siteContent)) =>
           indexer ! Indexer.Index(url, siteContent)
+        case Success(None) =>
+          // nothing to index, but no failure
+          // we need to report this to the indexer,
+          // in order to tell the supervisor that we processed this url
+          // a direct msg to the supervisor would be possible but violates the protocol
+          // -> room for performance optimization: send msg directly to supervisor
+          indexer ! Indexer.NoIndex(url)
         case Failure(exception) =>
-          // report back to host crawler
+          // report failure back to host crawler
+          // -> allows rescheduling
           sender ! HostCrawler.SiteScrapeFailure(
             url,
             exception
           )
       }
+
       idle(indexer)
   }
 
-  private def scrape(url: URL): Try[SiteContent] = {
+  private def scrape(url: URL): Try[Option[SiteContent]] = {
     val link: String = url.toString
     try {
-      val response = Jsoup
+      Jsoup
         .connect(link)
         .followRedirects(true)
         .ignoreContentType(true)
         .userAgent(UserAgentProvider.randomUserAgent)
         .execute()
-
-      val contentType: String = response.contentType
-      if (contentType.startsWith(txtHtml)) {
-        Success(extractContentInformation(response, url))
-      } else {
-        throw new UnsupportedContentTypeException(
-          s"Unsupported content type: $contentType"
-        ) // handled below
+        .withCoVerifiedHeaderFilter
+        .flatMap(_.asFilteredSiteContent) match {
+        case siteContent @ Some(_) =>
+          Success(siteContent)
+        case None =>
+          Success(None) // nothing to index
       }
     } catch {
       case _: UnsupportedMimeTypeException =>
         // unsupported mime types are not re-scheduled, but indexed
-        Success(SiteContent(Set.empty))
+        Success(Some(SiteContent(Set.empty)))
       case _: MalformedURLException =>
         // malformed urls are not re-scheduled, but indexed
-        Success(SiteContent(Set.empty))
+        Success(Some(SiteContent(Set.empty)))
       case ex: HttpStatusException if ex.getStatusCode != 200 =>
         // page not found is not re-scheduled and not indexed
-        Success(SiteContent(Set.empty, addToIndex = false))
-      case _: UnsupportedContentTypeException =>
-        // unsupported content is not re-scheduled, but indexed
-        Success(SiteContent(Set.empty))
+        Success(None)
       case ex: IOException =>
         // everything else (e.g. timeout) will be re-scheduled and not indexed yet
         Failure(ex)
     }
   }
-
-  private def extractContentInformation(
-      siteResponse: Response,
-      url: URL
-  ): SiteContent = {
-    val doc = siteResponse.parse()
-    val toIndex = addToIndex(doc, url)
-    val links: Set[URL] = SiteExtractor.extractAbsLinks(doc)
-    val cLinks: Set[URL] = SiteExtractor.extractCanonicalLinksFromBody(doc)
-    val hRefLang: Set[URL] = SiteExtractor.extractHRefLang(doc)
-
-    SiteContent(links ++ cLinks ++ hRefLang, toIndex)
-  }
-
-  private def addToIndex(doc: Document, url: URL): Boolean = {
-    // no canonical = true, canonical == url = true, canonical != url = false
-    SiteExtractor.canonicalLinkFromHead(doc).forall(_.equals(url))
-  }
-
 }

@@ -23,6 +23,8 @@ object Indexer extends LazyLogging {
 
   final case class Index(url: URL, content: SiteContent) extends IndexerEvent
 
+  final case class NoIndex(url: URL) extends IndexerEvent
+
   def apply(
       supervisor: ActorRef[SupervisorEvent],
       file: Path
@@ -35,8 +37,8 @@ object Indexer extends LazyLogging {
   ): Behavior[IndexerEvent] = Behaviors.receive[IndexerEvent] {
     case (ctx, msg) =>
       msg match {
-        case Index(url, content) if content.addToIndex =>
-          // process new urls and write out/index the processed url
+        case Index(url, content) =>
+          // schedule new urls if any and write out/index the base url
           logger.debug(s"Indexed '$url'")
           implicit val system: ActorSystem[Nothing] = ctx.system
           Source
@@ -47,9 +49,9 @@ object Indexer extends LazyLogging {
           supervisor ! Supervisor.IndexFinished(url, content.links)
           idle(supervisor, file)
 
-        case Index(url, content) =>
-          // just process the provided links, but do not index the processed url
-          supervisor ! Supervisor.IndexFinished(url, content.links)
+        case NoIndex(url) =>
+          // do not index this url
+          supervisor ! Supervisor.IndexFinished(url, Set.empty)
           idle(supervisor, file)
 
       }
