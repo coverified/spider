@@ -80,17 +80,22 @@ object Supervisor extends LazyLogging {
               .map(clean)
               .filterNot(alreadyScraped(_, data))
               .filter(inNamespaces(_, data))
-            val updatedData = uniqueNewUrls
-              .foldLeft(data)(
-                (updatedData, url) => scrape(url, actorContext, updatedData)
+            if (uniqueNewUrls.nonEmpty) {
+              val updatedData = uniqueNewUrls
+                .foldLeft(data)(
+                  (updatedData, url) => scrape(url, actorContext, updatedData)
+                )
+              logger.info(
+                s"Received ${newUrls.size} (new: ${uniqueNewUrls.size}) urls."
               )
-            logger.info(
-              s"Received ${newUrls.size} (new: ${uniqueNewUrls.size}) urls."
-            )
-            logger.debug(
-              s"Received ${newUrls.size} (new: ${uniqueNewUrls.size}) urls from '$url'."
-            )
-            idle(updatedData.copy(toScrape = updatedData.toScrape - url))
+              logger.debug(
+                s"Received ${newUrls.size} (new: ${uniqueNewUrls.size}) urls from '$url'."
+              )
+              idle(updatedData.copy(toScrape = updatedData.toScrape - url))
+            } else {
+              logger.debug(s"No new links from $url. ")
+              idle(data.copy(toScrape = data.toScrape - url))
+            }
           case IdleTimeout() =>
             checkAndShutdown(data, actorContext.system)
         }
