@@ -6,6 +6,7 @@
 package info.coverified.spider.util
 
 import info.coverified.spider.SiteScraper.SiteContent
+import info.coverified.spider.util.UrlFilter.wantedUrl
 import org.jsoup.Connection.Response
 import org.apache.commons.validator.routines.UrlValidator
 import org.jsoup.nodes.{Document, Element}
@@ -38,10 +39,14 @@ object ContentFilter {
   ): Option[SiteContent] = {
     val doc = siteResponse.parse()
     if (addToIndex(doc, url)) {
-      val links: Set[URL] = extractAbsLinks(doc)
-      val cLinks: Set[URL] = extractCanonicalLinksFromBody(doc)
-      val hRefLang: Set[URL] = extractHRefLang(doc)
-      Some(SiteContent(links ++ cLinks ++ hRefLang))
+      val links: mutable.Seq[String] = extractAbsLinks(doc)
+      val cLinks: mutable.Seq[String] = extractCanonicalLinksFromBody(doc)
+      val hRefLang: mutable.Seq[String] = extractHRefLang(doc)
+
+      val newUrls =
+        (links ++ cLinks ++ hRefLang).filter(wantedUrl).map(new URL(_)).toSet
+
+      Some(SiteContent(newUrls))
     } else {
       None
     }
@@ -50,19 +55,19 @@ object ContentFilter {
 
   private def addToIndex(doc: Document, url: URL): Boolean = {
     // no canonical = true, canonical == url = true, canonical != url = false
-    canonicalLinkFromHead(doc).forall(_.equals(url))
+    canonicalLinkFromHead(doc).forall(_.equals(url.toString)) || canonicalLinkFromHead(
+      doc
+    ).forall(_.equals(s"${url.toString}/"))
   }
 
-  def extractAbsLinks(doc: Document): Set[URL] =
+  def extractAbsLinks(doc: Document): mutable.Buffer[String] =
     doc
       .getElementsByTag("a")
       .asScala
       .map(_.absUrl("href"))
       .filter(urlValidator.isValid)
-      .map(new URL(_))
-      .toSet
 
-  def extractHRefLang(doc: Document): Set[URL] =
+  def extractHRefLang(doc: Document): mutable.Buffer[String] =
     doc
       .getElementsByTag("link")
       .asScala
@@ -76,16 +81,14 @@ object ContentFilter {
       )
       .map(_.absUrl("href"))
       .filter(urlValidator.isValid)
-      .map(new URL(_))
-      .toSet
 
-  def extractCanonicalLinksFromBody(doc: Document): Set[URL] =
-    canonicalLinks(doc.body()).toSet
+  def extractCanonicalLinksFromBody(doc: Document): mutable.Buffer[String] =
+    canonicalLinks(doc.body())
 
-  def canonicalLinkFromHead(doc: Document): Option[URL] =
+  def canonicalLinkFromHead(doc: Document): Option[String] =
     canonicalLinks(doc.head()).headOption
 
-  private def canonicalLinks(e: Element): mutable.Buffer[URL] =
+  private def canonicalLinks(e: Element): mutable.Buffer[String] =
     e.getElementsByTag("link")
       .asScala
       .filter(
@@ -97,6 +100,5 @@ object ContentFilter {
       .filter(e => e.attributes().get("rel").equals("canonical"))
       .map(_.absUrl("href"))
       .filter(urlValidator.isValid)
-      .map(new URL(_))
 
 }

@@ -11,7 +11,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.net.URL
 
-class SiteExtractorSpec extends should.Matchers with AnyWordSpecLike {
+class ContentFilterSpec extends should.Matchers with AnyWordSpecLike {
 
   "The SiteExtractor" should {
 
@@ -29,7 +29,7 @@ class SiteExtractorSpec extends should.Matchers with AnyWordSpecLike {
 
       val doc = Jsoup.parse(canonicalHtml)
 
-      SiteExtractor.canonicalLinkFromHead(doc) shouldBe Some(
+      ContentFilter.canonicalLinkFromHead(doc) shouldBe Some(
         new URL("https://example.com/page.html")
       )
 
@@ -44,7 +44,7 @@ class SiteExtractorSpec extends should.Matchers with AnyWordSpecLike {
 
       val doc = Jsoup.parse(canonicalHtml)
 
-      SiteExtractor.canonicalLinkFromHead(doc) shouldBe None
+      ContentFilter.canonicalLinkFromHead(doc) shouldBe None
     }
 
     "identify valid canonical links in page body correctly" in {
@@ -62,7 +62,7 @@ class SiteExtractorSpec extends should.Matchers with AnyWordSpecLike {
 
       val doc = Jsoup.parse(canonicalHtml)
 
-      SiteExtractor.extractCanonicalLinksFromBody(doc) shouldBe Set(
+      ContentFilter.extractCanonicalLinksFromBody(doc) shouldBe Set(
         new URL("https://example.com/page1.html"),
         new URL("https://example.com/page2.html")
       )
@@ -79,7 +79,7 @@ class SiteExtractorSpec extends should.Matchers with AnyWordSpecLike {
 
       val doc = Jsoup.parse(canonicalHtml)
 
-      SiteExtractor.extractCanonicalLinksFromBody(doc) shouldBe Set.empty
+      ContentFilter.extractCanonicalLinksFromBody(doc) shouldBe Set.empty
     }
 
   }
