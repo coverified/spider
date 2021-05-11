@@ -61,6 +61,7 @@ object SiteScraper extends LazyLogging {
     try {
       val response = Jsoup
         .connect(link)
+        .followRedirects(true)
         .ignoreContentType(true)
         .userAgent(UserAgentProvider.randomUserAgent)
         .execute()
