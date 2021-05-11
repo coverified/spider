@@ -5,7 +5,6 @@
 
 package info.coverified.spider.main
 
-import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.duration.FiniteDuration
@@ -16,7 +15,7 @@ import scala.language.postfixOps
 final case class Config(
     scrapParallelism: Int,
     scrapeInterval: FiniteDuration,
-    scrapeTimeout: Timeout,
+    scrapeTimeout: Int,
     shutdownTimeout: FiniteDuration
 )
 
@@ -31,7 +30,7 @@ object Config extends LazyLogging {
   private val defaultParams: Map[String, Int] = Map(
     SCRAPE_PARALLELISM -> 100,
     SCRAPE_INTERVAL -> 100,
-    SCRAPE_TIMEOUT -> 15000,
+    SCRAPE_TIMEOUT -> 5000,
     SHUTDOWN_TIMEOUT -> 15000
   )
 
@@ -56,7 +55,7 @@ object Config extends LazyLogging {
       new Config(
         envParams(SCRAPE_PARALLELISM).toInt,
         envParams(SCRAPE_INTERVAL).toInt millis,
-        envParams(SCRAPE_TIMEOUT).toInt millis,
+        envParams(SCRAPE_TIMEOUT).toInt,
         envParams(SHUTDOWN_TIMEOUT).toInt millis
       )
     }

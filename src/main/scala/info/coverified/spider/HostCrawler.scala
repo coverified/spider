@@ -18,7 +18,6 @@ import scala.language.{existentials, postfixOps}
 import java.net.URL
 import java.nio.file.Paths
 import scala.collection.parallel.immutable.ParVector
-import scala.util.{Failure, Success}
 
 object HostCrawler extends LazyLogging {
 
@@ -33,7 +32,6 @@ object HostCrawler extends LazyLogging {
 
   final case class HostCrawlerData(
       noOfSiteScraper: Int,
-      scrapeTimeout: Timeout,
       indexer: ActorRef[IndexerEvent],
       supervisor: ActorRef[SupervisorEvent],
       siteScraper: Seq[ActorRef[SiteScraperEvent]],
@@ -44,7 +42,7 @@ object HostCrawler extends LazyLogging {
       host: String,
       noOfSiteScraper: Int,
       scrapeInterval: FiniteDuration,
-      scrapeTimeout: Timeout,
+      scrapeTimeout: Int,
       supervisor: ActorRef[SupervisorEvent]
   ): Behavior[HostCrawlerEvent] = {
     Behaviors.setup { ctx =>
@@ -58,11 +56,14 @@ object HostCrawler extends LazyLogging {
         idle(
           HostCrawlerData(
             noOfSiteScraper,
-            scrapeTimeout,
             indexer,
             supervisor,
             (0 until noOfSiteScraper).map(
-              no => ctx.spawn(SiteScraper(indexer), s"Scraper_${no}_$host")
+              no =>
+                ctx.spawn(
+                  SiteScraper(indexer, scrapeTimeout),
+                  s"Scraper_${no}_$host"
+                )
             )
           )
         )

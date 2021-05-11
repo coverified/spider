@@ -29,15 +29,19 @@ object SiteScraper extends LazyLogging {
 
   final case class SiteContent(links: Set[URL])
 
-  def apply(indexer: ActorRef[IndexerEvent]): Behavior[SiteScraperEvent] =
-    idle(indexer)
+  def apply(
+      indexer: ActorRef[IndexerEvent],
+      scrapeTimeout: Int
+  ): Behavior[SiteScraperEvent] =
+    idle(indexer, scrapeTimeout)
 
   private def idle(
-      indexer: ActorRef[IndexerEvent]
+      indexer: ActorRef[IndexerEvent],
+      timeout: Int
   ): Behavior[SiteScraperEvent] = Behaviors.receiveMessage {
     case Scrap(url, sender) =>
       logger.debug(s"Scraping '$url' ...")
-      val maybeContent = scrape(url)
+      val maybeContent = scrape(url, timeout)
 
       maybeContent match {
         case Success(Some(siteContent)) =>
@@ -58,14 +62,15 @@ object SiteScraper extends LazyLogging {
           )
       }
 
-      idle(indexer)
+      idle(indexer, timeout)
   }
 
-  private def scrape(url: URL): Try[Option[SiteContent]] = {
+  private def scrape(url: URL, timeout: Int): Try[Option[SiteContent]] = {
     val link: String = url.toString
     try {
       Jsoup
         .connect(link)
+        .timeout(timeout)
         .followRedirects(true)
         .ignoreContentType(true)
         .userAgent(UserAgentProvider.randomUserAgent)
