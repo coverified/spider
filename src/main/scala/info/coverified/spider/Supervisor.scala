@@ -63,12 +63,16 @@ object Supervisor extends LazyLogging {
                 logger.warn(
                   s"Cannot re-schedule '$url' for scraping. Max retries reached! Error = $reason"
                 )
-                data
+                data.copy(
+                  toScrape = data.toScrape - url
+                )
               case None =>
                 logger.error(
                   s"Cannot re-schedule '$url' for scraping. Unknown url! Error = $reason"
                 )
-                data
+                data.copy(
+                  toScrape = data.toScrape - url
+                )
             }
             idle(updatedData)
           case IndexFinished(url, newUrls) =>
@@ -115,12 +119,12 @@ object Supervisor extends LazyLogging {
             s"Scraper_$host"
           )
       )
-      actor ! HostCrawler.Scrap(url)
+      actor ! HostCrawler.Scrap(clean(url))
       data.copy(
         host2Actor = data.host2Actor + (host -> actor),
         namespaces = data.namespaces :+ host,
         scrapCounts = countVisits(clean(url), data.scrapCounts),
-        toScrape = data.toScrape + url
+        toScrape = data.toScrape + clean(url)
       )
     } else {
       logger.warn(s"Cannot get host of url: '$url'!")
