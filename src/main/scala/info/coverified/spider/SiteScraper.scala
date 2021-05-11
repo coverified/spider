@@ -73,7 +73,7 @@ object SiteScraper extends LazyLogging {
         .timeout(timeout)
         .followRedirects(true)
         .ignoreContentType(true)
-        .userAgent(UserAgentProvider.randomUserAgent)
+        .userAgent(UserAgentProvider.latestWindowsChrome)
         .execute()
         .withCoVerifiedHeaderFilter
         .flatMap(_.asFilteredSiteContent) match {
