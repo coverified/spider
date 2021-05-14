@@ -21,6 +21,7 @@ before_script:
 build:
   stage: build
   script:
+    - ./gradlew shadowJar --no-daemon
     - docker build --pull -t $CONTAINER_TEST_IMAGE .
     - docker push $CONTAINER_TEST_IMAGE
 
