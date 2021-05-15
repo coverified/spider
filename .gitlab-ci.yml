@@ -1,8 +1,6 @@
-image: docker:20
-services:
-  - docker:20-dind
-
 stages:
+  - build
+  - test
   - containerize
   - deploy
 
@@ -12,12 +10,29 @@ variables:
   DOCKER_TLS_CERTDIR: "/certs"
   CONTAINER_IMAGE: $CI_REGISTRY_IMAGE:latest
 
-before_script:
-  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+build:
+  stage: build
+  image: registry.gitlab.com/coverified/infrastructure/scala-base:latest
+  script:
+    - ./gradlew shadowJar --no-daemon
+  artifacts:
+    paths:
+      - build/libs/
+
+scalatest:
+  stage: test
+  image: registry.gitlab.com/coverified/infrastructure/scala-base:latest
+  script:
+    - ./gradlew scalatest --no-daemon
+  artifacts:
+    reports:
+      junit: build/reports/tests/xml/*.xml
 
 containerize:
   stage: containerize
+  image: docker:20
   script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker build --pull -t $CONTAINER_IMAGE .
     - docker push $CONTAINER_IMAGE
 
