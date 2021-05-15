@@ -1,20 +1,22 @@
+#build
 FROM registry.gitlab.com/coverified/infrastructure/scala-base:latest
-
 COPY . $WORKDIR
+RUN ./gradlew shadowJar --no-daemon
+#RUN ./gradlew test --no-daemon
 
-RUN ./gradlew shadowJar \
-    --no-daemon \
-    -Dorg.gradle.jvmargs="-XX:+UseContainerSupport -Xmx1024m -XX:MaxPermSize=256m"
-
-ARG PROCECT_NAME=spider_service
+# run
+FROM registry.gitlab.com/coverified/infrastructure/scala-base:latest
+ARG PROJECT_NAME=spider_service
 ARG CLASS_NAME=info.coverified.spider.main.Run
 ARG SENTRY_DSN
 ARG API_URL
 
-ENV PROCECT_NAME=$PROCECT_NAME
+ENV PROJECT_NAME=$PROJECT_NAME
 ENV CLASS_NAME=$CLASS_NAME
 ENV SENTRY_DSN=$SENTRY_DSN
 ENV API_URL=$API_URL
+
+COPY --from=0 /app/build/libs/$PROJECT_NAME-0.1-SNAPSHOT-all.jar $WORKDIR
 
 CMD [ \
     "java", \
@@ -23,6 +25,6 @@ CMD [ \
     "-Dio.netty.tryReflectionSetAccessible=true", \
     "--illegal-access=warn", \
     "-cp", \
-    "/app/build/libs/$PROCECT_NAME-0.1-SNAPSHOT-all.jar", \
+    "$WORKDIR/$PROJECT_NAME-0.1-SNAPSHOT-all.jar", \
     "$CLASS_NAME" \
     ]

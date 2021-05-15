@@ -76,7 +76,7 @@ dependencies {
 
 	// testing
 	testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.8"
-
+	testRuntimeClasspath 'com.vladsch.flexmark:flexmark-all:0.35.10'
 
 }
 
