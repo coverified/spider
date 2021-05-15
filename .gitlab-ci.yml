@@ -19,7 +19,7 @@ build:
     paths:
       - build/libs/
 
-scalatest:
+test:
   stage: test
   image: registry.gitlab.com/coverified/infrastructure/scala-base:latest
   script:
@@ -28,6 +28,7 @@ scalatest:
     reports:
       junit: build/reports/tests/xml/*.xml
       cobertura: build/reports/scoverage/cobertura.xml
+  dependencies: []
 
 containerize:
   stage: containerize
@@ -36,6 +37,8 @@ containerize:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker build --pull -t $CONTAINER_IMAGE .
     - docker push $CONTAINER_IMAGE
+  dependencies:
+    - build
 
 # TODO: deployment
 #deploy:
