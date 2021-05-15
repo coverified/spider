@@ -6,6 +6,7 @@ plugins {
 	id 'scala' // scala support
 	id 'com.diffplug.spotless' version '5.7.0'//code format
 	id "com.github.johnrengelman.shadow" version "7.0.0" // fat jar
+	id "org.scoverage" version "5.0.0" // scala code coverage scoverage
 }
 
 
@@ -21,6 +22,7 @@ ext {
 
 apply from: scriptsLocation + 'spotless.gradle'
 apply from: scriptsLocation + 'tests.gradle'
+apply from: scriptsLocation + 'scoverage.gradle' // scoverage scala code coverage
 
 group = 'info.coverified'
 version = '0.1-SNAPSHOT'

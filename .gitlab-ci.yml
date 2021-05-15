@@ -23,10 +23,11 @@ scalatest:
   stage: test
   image: registry.gitlab.com/coverified/infrastructure/scala-base:latest
   script:
-    - ./gradlew scalatest --no-daemon
+    - ./gradlew reportScoverage checkScoverage --no-daemon
   artifacts:
     reports:
       junit: build/reports/tests/xml/*.xml
+      cobertura: build/reports/scoverage/cobertura.xml
 
 containerize:
   stage: containerize
@@ -35,19 +36,6 @@ containerize:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker build --pull -t $CONTAINER_IMAGE .
     - docker push $CONTAINER_IMAGE
-
-# TODO: run tests
-#test1:
-#  stage: test
-#  script:
-#    - docker pull $CONTAINER_TEST_IMAGE
-#    - docker run $CONTAINER_TEST_IMAGE /script/to/run/tests
-#
-#test2:
-#  stage: test
-#  script:
-#    - docker pull $CONTAINER_TEST_IMAGE
-#    - docker run $CONTAINER_TEST_IMAGE /script/to/run/another/test
 
 # TODO: deployment
 #deploy:

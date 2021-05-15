@@ -5,3 +5,5 @@ task scalatest(dependsOn: ['testClasses'], type: JavaExec) {
     args = ['-R', 'build/classes/scala/test', '-o', '-u', 'build/reports/tests/xml']
     classpath = sourceSets.test.runtimeClasspath
 }
+
+test.dependsOn(scalatest)
