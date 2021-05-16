@@ -14,16 +14,20 @@ build:
   stage: build
   image: registry.gitlab.com/coverified/infrastructure/scala-base:latest
   script:
-    - ./gradlew shadowJar --no-daemon
+    - ./gradlew shadowJar
+    - ./gradlew projectProperties
   artifacts:
+    reports:
+      dotenv: build/build.env
     paths:
       - build/libs/
+    expire_in: 1 day
 
 test:
   stage: test
   image: registry.gitlab.com/coverified/infrastructure/scala-base:latest
   script:
-    - ./gradlew reportScoverage checkScoverage --no-daemon
+    - ./gradlew reportScoverage checkScoverage
   artifacts:
     reports:
       junit: build/reports/tests/xml/*.xml
@@ -35,10 +39,12 @@ containerize:
   image: docker:20
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build --pull -t $CONTAINER_IMAGE .
+    - docker build --pull -t $CONTAINER_IMAGE --build-arg PROJECT_NAME --build-arg PROJECT_VERSION --build-arg MAIN_CLASS .
     - docker push $CONTAINER_IMAGE
   dependencies:
     - build
+  #only: TODO uncomment when branch is final
+  #  - main
 
 # TODO: deployment
 #deploy:
