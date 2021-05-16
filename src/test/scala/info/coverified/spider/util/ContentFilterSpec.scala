@@ -9,7 +9,7 @@ import org.jsoup.Jsoup
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import java.net.URL
+import scala.collection.mutable
 
 class ContentFilterSpec extends should.Matchers with AnyWordSpecLike {
 
@@ -30,7 +30,7 @@ class ContentFilterSpec extends should.Matchers with AnyWordSpecLike {
       val doc = Jsoup.parse(canonicalHtml)
 
       ContentFilter.canonicalLinkFromHead(doc) shouldBe Some(
-        new URL("https://example.com/page.html")
+        "https://example.com/page.html"
       )
 
     }
@@ -62,9 +62,9 @@ class ContentFilterSpec extends should.Matchers with AnyWordSpecLike {
 
       val doc = Jsoup.parse(canonicalHtml)
 
-      ContentFilter.extractCanonicalLinksFromBody(doc) shouldBe Set(
-        new URL("https://example.com/page1.html"),
-        new URL("https://example.com/page2.html")
+      ContentFilter.extractCanonicalLinksFromBody(doc) shouldBe mutable.Buffer(
+        "https://example.com/page1.html",
+        "https://example.com/page2.html"
       )
 
     }
@@ -79,7 +79,7 @@ class ContentFilterSpec extends should.Matchers with AnyWordSpecLike {
 
       val doc = Jsoup.parse(canonicalHtml)
 
-      ContentFilter.extractCanonicalLinksFromBody(doc) shouldBe Set.empty
+      ContentFilter.extractCanonicalLinksFromBody(doc) shouldBe mutable.Buffer.empty[String]
     }
 
   }
