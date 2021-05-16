@@ -37,6 +37,8 @@ test:
 containerize:
   stage: containerize
   image: docker:20
+  services:
+    - docker:20-dind
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker build --pull -t $CONTAINER_IMAGE --build-arg PROJECT_NAME --build-arg PROJECT_VERSION --build-arg MAIN_CLASS .
