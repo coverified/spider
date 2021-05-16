@@ -45,8 +45,8 @@ containerize:
     - docker push $CONTAINER_IMAGE
   dependencies:
     - build
-  #only: TODO uncomment when branch is final
-  #  - main
+  only:
+    - main
 
 # TODO: deployment
 #deploy:
@@ -54,4 +54,4 @@ containerize:
 #  script:
 #    - ./deploy.sh
 #  only:
-#    - master
+#    - main
