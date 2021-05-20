@@ -55,9 +55,9 @@ object ContentFilter {
 
   private def addToIndex(doc: Document, url: URL): Boolean = {
     // no canonical = true, canonical == url = true, canonical != url = false
-    canonicalLinkFromHead(doc).forall(_.equals(url.toString)) || canonicalLinkFromHead(
-      doc
-    ).forall(_.equals(s"${url.toString}/"))
+    canonicalLinkFromHead(doc).forall(
+      link => link.equals(url.toString) || link.equals(s"${url.toString}/")
+    )
   }
 
   def extractAbsLinks(doc: Document): mutable.Buffer[String] =
