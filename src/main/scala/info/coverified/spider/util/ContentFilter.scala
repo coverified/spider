@@ -26,7 +26,7 @@ object ContentFilter {
     // by the header filter
     val contentType: String = response.contentType
     if (contentType.startsWith(txtHtml)) {
-      extractContentInformation(response, response.url)
+      extractContentInformation(response.parse(), response.url)
     } else {
       // unsupported content is indexed, but does not contain any other urls
       Some(SiteContent(Set.empty))
@@ -34,10 +34,9 @@ object ContentFilter {
   }
 
   private def extractContentInformation(
-      siteResponse: Response,
+      doc: Document,
       url: URL
   ): Option[SiteContent] = {
-    val doc = siteResponse.parse()
     if (addToIndex(doc, url)) {
       val links: mutable.Seq[String] = extractAbsLinks(doc)
       val cLinks: mutable.Seq[String] = extractCanonicalLinksFromBody(doc)
@@ -50,7 +49,6 @@ object ContentFilter {
     } else {
       None
     }
-
   }
 
   private def addToIndex(doc: Document, url: URL): Boolean = {

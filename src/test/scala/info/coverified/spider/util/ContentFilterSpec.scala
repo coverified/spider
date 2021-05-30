@@ -5,15 +5,152 @@
 
 package info.coverified.spider.util
 
+import info.coverified.spider.SiteScraper.SiteContent
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
+import org.scalatest.PrivateMethodTester
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 
+import java.net.URL
 import scala.collection.mutable
 
-class ContentFilterSpec extends should.Matchers with AnyWordSpecLike {
+class ContentFilterSpec
+    extends should.Matchers
+    with AnyWordSpecLike
+    with PrivateMethodTester {
+
+  private val addToIndexMethod = PrivateMethod[Boolean](Symbol("addToIndex"))
+  private val extractContentInformationMethod =
+    PrivateMethod[Option[SiteContent]](Symbol("extractContentInformation"))
 
   "The SiteExtractor" should {
+
+    "extract content information correctly if url is canonical link" in {
+      val html =
+        """<html>
+          |<head>
+          |    <!-- hreflang links -->
+          |    <link rel="alternate" hreflang="en" href="https://example.com/page_en.html">
+          |    <link rel="alternate" hreflang="es" href="https://example.com/page_es.html">
+          |
+          |    <!-- canonical link -->
+          |    <link rel="canonical" href="https://example.com/cat0/index.html">
+          |
+          |    <!-- irrelevant link -->
+          |    <link rel="canonical" href="https://example.com/canonical1">
+          |</head>
+          |<body
+          |    <!-- regular links (-> absolute) -->
+          |    <a href="https://example.com/abs.html">absolute level link</a>
+          |    <a href="same_level.html">same level link</a>
+          |
+          |    <!-- canonical links -->
+          |    <link rel="canonical" href="https://example.com/page1.html">
+          |    <link rel="canonical" href="https://example.com/page2.html">
+          |</body>
+          |</html>""".stripMargin
+
+      val doc: Document =
+        Jsoup.parse(html, "https://example.com/cat0/index.html")
+      (ContentFilter invokePrivate extractContentInformationMethod(
+        doc,
+        new URL("https://example.com/cat0/index.html")
+      )) shouldBe Some(
+        SiteContent(
+          Set(
+            new URL("https://example.com/page_en.html"),
+            new URL("https://example.com/page_es.html"),
+            new URL("https://example.com/abs.html"),
+            new URL("https://example.com/cat0/same_level.html"),
+            new URL("https://example.com/page1.html"),
+            new URL("https://example.com/page2.html")
+          )
+        )
+      )
+    }
+
+    "do not extract content information if url is not canonical link" in {
+      val html =
+        """<html>
+          |<head>
+          |    <link rel="alternate" hreflang="en" href="https://example.com/page_en.html">
+          |
+          |    <!-- canonical link -->
+          |    <link rel="canonical" href="https://example.com/different_link/index.html">
+          |</head>
+          |<body
+          |    <a href="https://example.com/page1.html">page1.html</a>
+          |</body>
+          |</html>""".stripMargin
+
+      val doc: Document =
+        Jsoup.parse(html, "https://example.com/cat0/index.html")
+      (ContentFilter invokePrivate extractContentInformationMethod(
+        doc,
+        new URL("https://example.com/cat0/index.html")
+      )) shouldBe None
+    }
+
+    "decide to add to index if url is canonical link" in {
+      val html =
+        """<html>
+          |<head>
+          |    <link rel="canonical" href="https://example.com/">
+          |</head>
+          |<body></body>
+          |</html>""".stripMargin
+
+      val doc: Document = Jsoup.parse(html)
+      assert(
+        ContentFilter invokePrivate addToIndexMethod(
+          doc,
+          new URL("https://example.com")
+        )
+      )
+    }
+
+    "decide to not add to index if url is not equal to canonical link" in {
+      val html =
+        """<html>
+          |<head>
+          |    <link rel="canonical" href="https://example.com/page1.php">
+          |</head>
+          |<body></body>
+          |</html>""".stripMargin
+
+      val doc: Document = Jsoup.parse(html)
+      assert(
+        !(ContentFilter invokePrivate addToIndexMethod(
+          doc,
+          new URL("https://example.com/page1.php?foo")
+        ))
+      )
+    }
+
+    "extract absolute links correctly" in {
+      val canonicalHtml =
+        """<html>
+          |<head></head>
+          |<body
+          |    <a href="https://example.com/abs.html">absolute level link</a>
+          |    <a href="same_level.html">same level link</a>
+          |    <a href="../upper_level.html">upper level link</a>
+          |    <a href="sub/sub_page.html">sub level link</a>
+          |    <a href="|| invalid link ||">invalid link</a>
+          |</body>
+          |</html>""".stripMargin
+
+      val doc =
+        Jsoup.parse(canonicalHtml, "https://example.com/cat0/index.html")
+
+      ContentFilter.extractAbsLinks(doc) shouldBe mutable.Buffer(
+        "https://example.com/abs.html",
+        "https://example.com/cat0/same_level.html",
+        "https://example.com/upper_level.html",
+        "https://example.com/cat0/sub/sub_page.html"
+      )
+    }
 
     "identify valid hreflang links in page heads correctly" in {
       val html =
@@ -33,7 +170,6 @@ class ContentFilterSpec extends should.Matchers with AnyWordSpecLike {
         "https://example.com/page_es.html"
       )
     }
-
 
     "identify valid canonical links in page heads correctly" in {
       val canonicalHtml =
@@ -108,7 +244,8 @@ class ContentFilterSpec extends should.Matchers with AnyWordSpecLike {
 
       val doc = Jsoup.parse(canonicalHtml)
 
-      ContentFilter.extractCanonicalLinksFromBody(doc) shouldBe mutable.Buffer.empty[String]
+      ContentFilter.extractCanonicalLinksFromBody(doc) shouldBe mutable.Buffer
+        .empty[String]
     }
 
   }
