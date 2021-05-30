@@ -21,6 +21,7 @@ import java.io.File
   * @version 0.1
   * @since 25.02.21
   */
+@deprecated
 object Run extends App with LazyLogging {
   override def run(args: List[String]): URIO[zio.ZEnv, ExitCode] = {
 
