@@ -6,21 +6,23 @@ plugins {
 	id 'scala' // scala support
 	id 'com.diffplug.spotless' version '5.7.0'//code format
 	id "com.github.johnrengelman.shadow" version "7.0.0" // fat jar
-	id "com.github.maiflai.scalatest" version "0.31" // run scalatest without specific spec task
+	id "org.scoverage" version "5.0.0" // scala code coverage scoverage
 }
 
-
 ext {
-
 	scalaVersion = '2.13'
 	scalaBinaryVersion = '2.13.5'
 	javaVersion = JavaVersion.VERSION_11
 
 	scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator //location of script plugins
 
+	mainClass = 'info.coverified.spider.main.Run'
 }
 
 apply from: scriptsLocation + 'spotless.gradle'
+apply from: scriptsLocation + 'tests.gradle'
+apply from: scriptsLocation + 'scoverage.gradle'
+apply from: scriptsLocation + 'utils.gradle'
 
 group = 'info.coverified'
 version = '0.1-SNAPSHOT'
@@ -76,7 +78,7 @@ dependencies {
 
 	// testing
 	testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.8"
-
+	testRuntimeClasspath 'com.vladsch.flexmark:flexmark-all:0.35.10'
 
 }
 

@@ -1,50 +1,51 @@
-image: docker:20
-services:
-  - docker:20-dind
-
 stages:
   - build
   - test
-  - release
+  - containerize
   - deploy
 
 variables:
   # Use TLS https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#tls-enabled
   DOCKER_HOST: tcp://docker:2376
   DOCKER_TLS_CERTDIR: "/certs"
-  CONTAINER_TEST_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-  CONTAINER_RELEASE_IMAGE: $CI_REGISTRY_IMAGE:latest
-
-before_script:
-  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  CONTAINER_IMAGE: $CI_REGISTRY_IMAGE:latest
 
 build:
   stage: build
+  image: registry.gitlab.com/coverified/infrastructure/scala-base:latest
   script:
-    - docker build --pull -t $CONTAINER_TEST_IMAGE .
-    - docker push $CONTAINER_TEST_IMAGE
+    - ./gradlew shadowJar
+    - ./gradlew projectProperties
+  artifacts:
+    reports:
+      dotenv: build/build.env
+    paths:
+      - build/libs/
+    expire_in: 1 day
 
-# TODO: run tests
-#test1:
-#  stage: test
-#  script:
-#    - docker pull $CONTAINER_TEST_IMAGE
-#    - docker run $CONTAINER_TEST_IMAGE /script/to/run/tests
-#
-#test2:
-#  stage: test
-#  script:
-#    - docker pull $CONTAINER_TEST_IMAGE
-#    - docker run $CONTAINER_TEST_IMAGE /script/to/run/another/test
-
-release-image:
-  stage: release
+test:
+  stage: test
+  image: registry.gitlab.com/coverified/infrastructure/scala-base:latest
   script:
-    - docker pull $CONTAINER_TEST_IMAGE
-    - docker tag $CONTAINER_TEST_IMAGE $CONTAINER_RELEASE_IMAGE
-    - docker push $CONTAINER_RELEASE_IMAGE
+    - ./gradlew reportScoverage checkScoverage
+  artifacts:
+    reports:
+      junit: build/reports/tests/xml/*.xml
+      cobertura: build/reports/scoverage/cobertura.xml
+  dependencies: []
+
+containerize:
+  stage: containerize
+  image: docker:20
+  services:
+    - docker:20-dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build --pull -t $CONTAINER_IMAGE --build-arg PROJECT_NAME --build-arg PROJECT_VERSION --build-arg MAIN_CLASS .
+    - docker push $CONTAINER_IMAGE
+  dependencies:
+    - build
   only:
-    - master
     - main
 
 # TODO: deployment
@@ -53,4 +54,4 @@ release-image:
 #  script:
 #    - ./deploy.sh
 #  only:
-#    - master
+#    - main
