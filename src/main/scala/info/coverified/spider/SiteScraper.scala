@@ -24,7 +24,7 @@ object SiteScraper extends LazyLogging {
 
   sealed trait SiteScraperEvent
 
-  final case class Scrap(url: URL, sender: ActorRef[HostCrawlerEvent])
+  final case class Scrape(url: URL, sender: ActorRef[HostCrawlerEvent])
       extends SiteScraperEvent
 
   final case class SiteContent(links: Set[URL])
@@ -39,7 +39,7 @@ object SiteScraper extends LazyLogging {
       indexer: ActorRef[IndexerEvent],
       timeout: Int
   ): Behavior[SiteScraperEvent] = Behaviors.receiveMessage {
-    case Scrap(url, sender) =>
+    case Scrape(url, sender) =>
       logger.debug(s"Scraping '$url' ...")
       val maybeContent = scrape(url, timeout)
 

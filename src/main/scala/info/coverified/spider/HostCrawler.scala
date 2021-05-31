@@ -5,27 +5,26 @@
 
 package info.coverified.spider
 
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors, Routers}
 import akka.actor.typed.{ActorRef, Behavior}
-import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import info.coverified.spider.Indexer.IndexerEvent
 import info.coverified.spider.SiteScraper.SiteScraperEvent
 import info.coverified.spider.Supervisor.SupervisorEvent
 
-import scala.concurrent.duration._
-import scala.language.{existentials, postfixOps}
 import java.net.URL
 import java.nio.file.Paths
 import scala.collection.parallel.immutable.ParVector
+import scala.concurrent.duration._
+import scala.language.{existentials, postfixOps}
 
 object HostCrawler extends LazyLogging {
 
   sealed trait HostCrawlerEvent
 
-  final case class Scrap(url: URL) extends HostCrawlerEvent
+  final case class Scrape(url: URL) extends HostCrawlerEvent
 
-  final case class Process() extends HostCrawlerEvent
+  final case object Process extends HostCrawlerEvent
 
   final case class SiteScrapeFailure(url: URL, reason: Throwable)
       extends HostCrawlerEvent
@@ -34,7 +33,7 @@ object HostCrawler extends LazyLogging {
       noOfSiteScraper: Int,
       indexer: ActorRef[IndexerEvent],
       supervisor: ActorRef[SupervisorEvent],
-      siteScraper: Seq[ActorRef[SiteScraperEvent]],
+      siteScraper: ActorRef[SiteScraperEvent],
       siteQueue: ParVector[URL] = ParVector.empty
   )
 
@@ -48,23 +47,22 @@ object HostCrawler extends LazyLogging {
     Behaviors.setup { ctx =>
       Behaviors.withTimers { timer =>
         // self timer to trigger scraping process with delay
-        timer.startTimerAtFixedRate(Process(), scrapeInterval)
+        timer.startTimerAtFixedRate(Process, scrapeInterval)
         val indexer = ctx.spawn(
           Indexer(supervisor, Paths.get(host + ".txt")),
           s"Indexer_$host"
         )
+        val pool = Routers
+          .pool(noOfSiteScraper) {
+            SiteScraper(indexer, scrapeTimeout)
+          }
+          .withRoundRobinRouting()
         idle(
           HostCrawlerData(
             noOfSiteScraper,
             indexer,
             supervisor,
-            (0 until noOfSiteScraper).map(
-              no =>
-                ctx.spawn(
-                  SiteScraper(indexer, scrapeTimeout),
-                  s"Scraper_${no}_$host"
-                )
-            )
+            ctx.spawn(pool, "SiteScraper-pool")
           )
         )
       }
@@ -75,17 +73,17 @@ object HostCrawler extends LazyLogging {
     Behaviors.receive {
       case (ctx, msg) =>
         msg match {
-          case Scrap(url) =>
+          case Scrape(url) =>
             logger.debug(s"Scheduled '$url' for scraping.")
             idle(
               data.copy(
                 siteQueue = data.siteQueue :+ url
               )
             )
-          case Process() =>
+          case Process =>
             process(data, ctx)
           case SiteScrapeFailure(url, reason) =>
-            data.supervisor ! Supervisor.ScrapFailure(url, reason)
+            data.supervisor ! Supervisor.ScrapeFailure(url, reason)
             Behaviors.same
         }
     }
@@ -95,12 +93,10 @@ object HostCrawler extends LazyLogging {
       ctx: ActorContext[HostCrawlerEvent]
   ): Behavior[HostCrawlerEvent] = {
     // take all site scraper available
-    val processedUrls =
-      data.siteQueue.take(data.noOfSiteScraper).zip(data.siteScraper).map {
-        case (url, scraper) =>
-          scraper ! SiteScraper.Scrap(url, ctx.self)
-          url
-      }
+    val processedUrls = data.siteQueue.take(data.noOfSiteScraper)
+    processedUrls.foreach { url =>
+      data.siteScraper ! SiteScraper.Scrape(url, ctx.self)
+    }
     idle(data.copy(siteQueue = data.siteQueue.diff(processedUrls)))
   }
 }

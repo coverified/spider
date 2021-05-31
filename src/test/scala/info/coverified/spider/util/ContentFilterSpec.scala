@@ -70,7 +70,7 @@ class ContentFilterSpec
       )
     }
 
-    "do not extract content information if url is not canonical link" in {
+    "not extract content information if url is not canonical link" in {
       val html =
         """<html>
           |<head>

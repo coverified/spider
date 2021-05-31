@@ -41,6 +41,8 @@ object Indexer extends LazyLogging {
           // schedule new urls if any and write out/index the base url
           logger.debug(s"Indexed '$url'")
           implicit val system: ActorSystem[Nothing] = ctx.system
+
+          // TODO insert into GraphQL instead
           Source
             .single(url.toString + "\n")
             .map(t => ByteString(t))

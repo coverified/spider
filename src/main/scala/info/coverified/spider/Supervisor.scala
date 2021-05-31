@@ -21,27 +21,26 @@ object Supervisor extends LazyLogging {
 
   final case class Start(url: URL) extends SupervisorEvent
 
-  final case class ScrapFailure(url: URL, reason: Throwable)
+  final case class ScrapeFailure(url: URL, reason: Throwable)
       extends SupervisorEvent
 
   final case class IndexFinished(url: URL, newUrls: Set[URL])
       extends SupervisorEvent
 
-  final case class IdleTimeout() extends SupervisorEvent
+  final case object IdleTimeout extends SupervisorEvent
 
   final case class SupervisorData(
       config: Config,
       startDate: Long = System.currentTimeMillis(),
       host2Actor: Map[String, ActorRef[HostCrawlerEvent]] = Map.empty,
-      scrapCounts: Map[URL, Int] = Map.empty,
-      toScrape: Set[URL] = Set.empty,
-      namespaces: Vector[String] = Vector.empty
+      scrapeCounts: Map[URL, Int] = Map.empty,
+      currentlyScraping: Set[URL] = Set.empty
   )
 
   private val maxRetries = 0 // todo JH config value
 
   def apply(cfg: Config): Behavior[SupervisorEvent] = Behaviors.setup { ctx =>
-    ctx.setReceiveTimeout(cfg.shutdownTimeout, IdleTimeout())
+    ctx.setReceiveTimeout(cfg.shutdownTimeout, IdleTimeout)
     idle(SupervisorData(cfg))
   }
 
@@ -52,8 +51,8 @@ object Supervisor extends LazyLogging {
           case Start(url) =>
             logger.info(s"Starting indexing for '$url' ...")
             idle(scrape(url, actorContext, data))
-          case ScrapFailure(url, reason) =>
-            val updatedData = data.scrapCounts.get(url) match {
+          case ScrapeFailure(url, reason) =>
+            val updatedData = data.scrapeCounts.get(url) match {
               case Some(scrapeCount) if scrapeCount <= maxRetries =>
                 logger.warn(
                   s"Scraping failed. Re-scheduling! url: $url Reason = $reason"
@@ -64,14 +63,14 @@ object Supervisor extends LazyLogging {
                   s"Cannot re-schedule '$url' for scraping. Max retries reached! Error = $reason"
                 )
                 data.copy(
-                  toScrape = data.toScrape - url
+                  currentlyScraping = data.currentlyScraping - url
                 )
               case None =>
                 logger.error(
                   s"Cannot re-schedule '$url' for scraping. Unknown url! Error = $reason"
                 )
                 data.copy(
-                  toScrape = data.toScrape - url
+                  currentlyScraping = data.currentlyScraping - url
                 )
             }
             idle(updatedData)
@@ -91,12 +90,15 @@ object Supervisor extends LazyLogging {
               logger.debug(
                 s"Received ${newUrls.size} (new: ${uniqueNewUrls.size}) urls from '$url'."
               )
-              idle(updatedData.copy(toScrape = updatedData.toScrape - url))
+              idle(
+                updatedData
+                  .copy(currentlyScraping = updatedData.currentlyScraping - url)
+              )
             } else {
               logger.debug(s"No new links from $url. ")
-              idle(data.copy(toScrape = data.toScrape - url))
+              idle(data.copy(currentlyScraping = data.currentlyScraping - url))
             }
-          case IdleTimeout() =>
+          case IdleTimeout =>
             checkAndShutdown(data, actorContext.system)
         }
       case _ =>
@@ -124,12 +126,11 @@ object Supervisor extends LazyLogging {
             s"Scraper_$host"
           )
       )
-      actor ! HostCrawler.Scrap(clean(url))
+      actor ! HostCrawler.Scrape(clean(url))
       data.copy(
         host2Actor = data.host2Actor + (host -> actor),
-        namespaces = data.namespaces :+ host,
-        scrapCounts = countVisits(clean(url), data.scrapCounts),
-        toScrape = data.toScrape + clean(url)
+        scrapeCounts = countVisits(clean(url), data.scrapeCounts),
+        currentlyScraping = data.currentlyScraping + clean(url)
       )
     } else {
       logger.warn(s"Cannot get host of url: '$url'!")
@@ -138,10 +139,10 @@ object Supervisor extends LazyLogging {
   }
 
   private def alreadyScraped(url: URL, data: SupervisorData): Boolean =
-    data.scrapCounts.contains(url)
+    data.scrapeCounts.contains(url)
 
   private def inNamespaces(url: URL, data: SupervisorData): Boolean =
-    data.namespaces.contains(url.getHost)
+    data.host2Actor.keySet.contains(url.getHost)
 
   private def countVisits(url: URL, scrapCounts: Map[URL, Int]): Map[URL, Int] =
     scrapCounts + (url -> (scrapCounts.getOrElse(url, 0) + 1))
@@ -152,7 +153,7 @@ object Supervisor extends LazyLogging {
       data: SupervisorData,
       system: ActorSystem[Nothing]
   ): Behavior[SupervisorEvent] = {
-    if (data.toScrape.isEmpty) {
+    if (data.currentlyScraping.isEmpty) {
       // shutdown all
       logger.info(
         "Idle timeout in Supervisor reached and scraping data is empty. " +
