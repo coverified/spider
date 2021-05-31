@@ -68,7 +68,7 @@ dependencies {
 	implementation "com.typesafe.akka:akka-actor-typed_${scalaVersion}"
 
 	implementation "com.typesafe.akka:akka-stream_${scalaVersion}"
-	testImplementation "com.typesafe.akka:akka-stream-testkit_${scalaVersion}"
+	testImplementation "com.typesafe.akka:akka-actor-testkit-typed_${scalaVersion}"
 
 	// jsoup html parser
 	implementation group: 'org.jsoup', name: 'jsoup', version: '1.13.1'

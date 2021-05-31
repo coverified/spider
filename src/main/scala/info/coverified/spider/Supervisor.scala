@@ -37,8 +37,6 @@ object Supervisor extends LazyLogging {
       currentlyScraping: Set[URL] = Set.empty
   )
 
-  private val maxRetries = 0 // todo JH config value
-
   def apply(cfg: Config): Behavior[SupervisorEvent] = Behaviors.setup { ctx =>
     ctx.setReceiveTimeout(cfg.shutdownTimeout, IdleTimeout)
     idle(SupervisorData(cfg))
@@ -52,58 +50,73 @@ object Supervisor extends LazyLogging {
             logger.info(s"Starting indexing for '$url' ...")
             idle(scrape(url, actorContext, data))
           case ScrapeFailure(url, reason) =>
-            val updatedData = data.scrapeCounts.get(url) match {
-              case Some(scrapeCount) if scrapeCount <= maxRetries =>
-                logger.warn(
-                  s"Scraping failed. Re-scheduling! url: $url Reason = $reason"
-                )
-                scrape(url, actorContext, data)
-              case Some(_) =>
-                logger.warn(
-                  s"Cannot re-schedule '$url' for scraping. Max retries reached! Error = $reason"
-                )
-                data.copy(
-                  currentlyScraping = data.currentlyScraping - url
-                )
-              case None =>
-                logger.error(
-                  s"Cannot re-schedule '$url' for scraping. Unknown url! Error = $reason"
-                )
-                data.copy(
-                  currentlyScraping = data.currentlyScraping - url
-                )
-            }
-            idle(updatedData)
+            idle(handleFailure(data, actorContext, url, reason))
           case IndexFinished(url, newUrls) =>
-            val uniqueNewUrls = newUrls
-              .map(clean)
-              .filterNot(alreadyScraped(_, data))
-              .filter(inNamespaces(_, data))
-            if (uniqueNewUrls.nonEmpty) {
-              val updatedData = uniqueNewUrls
-                .foldLeft(data)(
-                  (updatedData, url) => scrape(url, actorContext, updatedData)
-                )
-              logger.info(
-                s"Received ${newUrls.size} (new: ${uniqueNewUrls.size}) urls."
-              )
-              logger.debug(
-                s"Received ${newUrls.size} (new: ${uniqueNewUrls.size}) urls from '$url'."
-              )
-              idle(
-                updatedData
-                  .copy(currentlyScraping = updatedData.currentlyScraping - url)
-              )
-            } else {
-              logger.debug(s"No new links from $url. ")
-              idle(data.copy(currentlyScraping = data.currentlyScraping - url))
-            }
+            idle(handleIndexFinished(data, actorContext, url, newUrls))
           case IdleTimeout =>
             checkAndShutdown(data, actorContext.system)
         }
       case _ =>
         Behaviors.unhandled
     }
+
+  private def handleFailure(
+      data: SupervisorData,
+      actorContext: ActorContext[SupervisorEvent],
+      url: URL,
+      reason: Throwable
+  ): SupervisorData = {
+    data.scrapeCounts.get(url) match {
+      case Some(scrapeCount) if scrapeCount <= data.config.maxRetries =>
+        logger.warn(
+          s"Scraping failed. Re-scheduling! url: $url Reason = $reason"
+        )
+        scrape(url, actorContext, data)
+      case Some(_) =>
+        logger.warn(
+          s"Cannot re-schedule '$url' for scraping. Max retries reached! Error = $reason"
+        )
+        data.copy(
+          currentlyScraping = data.currentlyScraping - url
+        )
+      case None =>
+        logger.error(
+          s"Cannot re-schedule '$url' for scraping. Unknown url! Error = $reason"
+        )
+        data.copy(
+          currentlyScraping = data.currentlyScraping - url
+        )
+    }
+  }
+
+  private def handleIndexFinished(
+      data: SupervisorData,
+      actorContext: ActorContext[SupervisorEvent],
+      url: URL,
+      newUrls: Set[URL]
+  ): SupervisorData = {
+    val uniqueNewUrls = newUrls
+      .map(clean)
+      .filterNot(alreadyScraped(_, data))
+      .filter(inNamespaces(_, data))
+    if (uniqueNewUrls.nonEmpty) {
+      val updatedData = uniqueNewUrls
+        .foldLeft(data)(
+          (updatedData, url) => scrape(url, actorContext, updatedData)
+        )
+      logger.info(
+        s"Received ${newUrls.size} (new: ${uniqueNewUrls.size}) urls."
+      )
+      logger.debug(
+        s"Received ${newUrls.size} (new: ${uniqueNewUrls.size}) urls from '$url'."
+      )
+      updatedData
+        .copy(currentlyScraping = updatedData.currentlyScraping - url)
+    } else {
+      logger.debug(s"No new links from $url. ")
+      data.copy(currentlyScraping = data.currentlyScraping - url)
+    }
+  }
 
   private def scrape(
       url: URL,
