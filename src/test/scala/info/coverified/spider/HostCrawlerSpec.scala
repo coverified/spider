@@ -13,8 +13,6 @@ import java.net.URL
 
 class HostCrawlerSpec extends ActorSpec {
 
-  private val defaultConfig = Config().get
-
   "Initialization of HostCrawler" should {
     "set a timer and spawn Indexer and SiteScrapers" in {
       val supervisor =

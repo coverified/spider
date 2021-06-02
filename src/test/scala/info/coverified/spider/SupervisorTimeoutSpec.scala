@@ -6,7 +6,6 @@
 package info.coverified.spider
 
 import info.coverified.spider.Supervisor.IdleTimeout
-import info.coverified.spider.main.Config
 
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
@@ -14,7 +13,7 @@ import scala.concurrent.duration.DurationInt
 class SupervisorTimeoutSpec extends ActorSpec {
   "An IdleTimeout message received by Supervisor" should {
     "terminate the ActorSystem" in {
-      val supervisor = testKit.spawn(Supervisor(Config().get))
+      val supervisor = testKit.spawn(Supervisor(defaultConfig))
 
       supervisor.tell(IdleTimeout)
 
