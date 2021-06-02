@@ -61,7 +61,7 @@ class SiteScraperSpec extends ActorSpec with BeforeAndAfterAll {
         "Scraper_127.0.0.1"
       )
 
-      val behaviorKit: BehaviorTestKit[SiteScraper.SiteScraperEvent] =
+      val behaviorKit =
         BehaviorTestKit(
           SiteScraper(
             indexer.ref,
@@ -98,7 +98,7 @@ class SiteScraperSpec extends ActorSpec with BeforeAndAfterAll {
         "Scraper_127.0.0.1"
       )
 
-      val behaviorKit: BehaviorTestKit[SiteScraper.SiteScraperEvent] =
+      val behaviorKit =
         BehaviorTestKit(
           SiteScraper(
             indexer.ref,
@@ -122,7 +122,7 @@ class SiteScraperSpec extends ActorSpec with BeforeAndAfterAll {
         "Scraper_127.0.0.1"
       )
 
-      val behaviorKit: BehaviorTestKit[SiteScraper.SiteScraperEvent] =
+      val behaviorKit =
         BehaviorTestKit(
           SiteScraper(
             indexer.ref,

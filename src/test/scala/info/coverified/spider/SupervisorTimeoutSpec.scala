@@ -15,7 +15,7 @@ class SupervisorTimeoutSpec extends ActorSpec {
     "terminate the ActorSystem" in {
       val supervisor = testKit.spawn(Supervisor(defaultConfig))
 
-      supervisor.tell(IdleTimeout)
+      supervisor ! IdleTimeout
 
       Await.ready(testKit.system.whenTerminated, 5.seconds)
     }
