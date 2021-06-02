@@ -131,7 +131,7 @@ object Supervisor extends LazyLogging {
           .spawn(
             HostCrawler(
               host,
-              data.config.scrapParallelism,
+              data.config.scrapeParallelism,
               data.config.scrapeInterval,
               data.config.scrapeTimeout,
               context.self

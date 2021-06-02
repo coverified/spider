@@ -13,7 +13,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 final case class Config(
-    scrapParallelism: Int,
+    scrapeParallelism: Int,
     scrapeInterval: FiniteDuration,
     scrapeTimeout: Int,
     shutdownTimeout: FiniteDuration,
