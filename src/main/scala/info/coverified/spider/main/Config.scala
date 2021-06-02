@@ -15,7 +15,7 @@ import scala.language.postfixOps
 final case class Config(
     scrapeParallelism: Int,
     scrapeInterval: FiniteDuration,
-    scrapeTimeout: Int,
+    scrapeTimeout: FiniteDuration,
     shutdownTimeout: FiniteDuration,
     maxRetries: Int
 )
@@ -58,7 +58,7 @@ object Config extends LazyLogging {
       new Config(
         envParams(SCRAPE_PARALLELISM).toInt,
         envParams(SCRAPE_INTERVAL).toInt millis,
-        envParams(SCRAPE_TIMEOUT).toInt,
+        envParams(SCRAPE_TIMEOUT).toInt millis,
         envParams(SHUTDOWN_TIMEOUT).toInt millis,
         envParams(MAX_RETRIES).toInt
       )

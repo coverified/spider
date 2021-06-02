@@ -16,9 +16,8 @@ import org.jsoup.{HttpStatusException, Jsoup, UnsupportedMimeTypeException}
 
 import java.io.IOException
 import java.net.{MalformedURLException, URL}
+import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Success, Try}
-
-// todo scrape timeout to jsoup from config
 
 object SiteScraper extends LazyLogging {
 
@@ -31,13 +30,13 @@ object SiteScraper extends LazyLogging {
 
   def apply(
       indexer: ActorRef[IndexerEvent],
-      scrapeTimeout: Int
+      scrapeTimeout: FiniteDuration
   ): Behavior[SiteScraperEvent] =
     idle(indexer, scrapeTimeout)
 
   private def idle(
       indexer: ActorRef[IndexerEvent],
-      timeout: Int
+      timeout: FiniteDuration
   ): Behavior[SiteScraperEvent] = Behaviors.receiveMessage {
     case Scrape(url, sender) =>
       logger.debug(s"Scraping '$url' ...")
@@ -65,12 +64,15 @@ object SiteScraper extends LazyLogging {
       idle(indexer, timeout)
   }
 
-  private def scrape(url: URL, timeout: Int): Try[Option[SiteContent]] = {
+  private def scrape(
+      url: URL,
+      timeout: FiniteDuration
+  ): Try[Option[SiteContent]] = {
     val link: String = url.toString
     try {
       Jsoup
         .connect(link)
-        .timeout(timeout)
+        .timeout(timeout.toMillis.toInt)
         .followRedirects(true)
         .ignoreContentType(true)
         .userAgent(UserAgentProvider.latestWindowsChrome)

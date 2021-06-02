@@ -41,7 +41,7 @@ object HostCrawler extends LazyLogging {
       host: String,
       noOfSiteScraper: Int,
       scrapeInterval: FiniteDuration,
-      scrapeTimeout: Int,
+      scrapeTimeout: FiniteDuration,
       supervisor: ActorRef[SupervisorEvent]
   ): Behavior[HostCrawlerEvent] = {
     Behaviors.setup { ctx =>
