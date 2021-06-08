@@ -8,6 +8,7 @@ package info.coverified.spider
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import com.typesafe.scalalogging.LazyLogging
+import info.coverified.graphql.schema.AllUrlSource.AllUrlSourceView
 import info.coverified.spider.HostCrawler.HostCrawlerEvent
 import info.coverified.spider.main.Config
 
@@ -19,7 +20,7 @@ object Supervisor extends LazyLogging {
 
   sealed trait SupervisorEvent
 
-  final case class Start(url: URL) extends SupervisorEvent
+  final case class Start(source: AllUrlSourceView) extends SupervisorEvent
 
   final case class ScrapeFailure(url: URL, reason: Throwable)
       extends SupervisorEvent
@@ -32,6 +33,7 @@ object Supervisor extends LazyLogging {
   final case class SupervisorData(
       config: Config,
       startDate: Long = System.currentTimeMillis(),
+      host2Source: Map[String, AllUrlSourceView] = Map.empty,
       host2Actor: Map[String, ActorRef[HostCrawlerEvent]] = Map.empty,
       scrapeCounts: Map[URL, Int] = Map.empty,
       currentlyScraping: Set[URL] = Set.empty
@@ -46,9 +48,18 @@ object Supervisor extends LazyLogging {
     Behaviors.receive {
       case (actorContext, msg) =>
         msg match {
-          case Start(url) =>
-            logger.info(s"Starting indexing for '$url' ...")
-            idle(scrape(url, actorContext, data))
+          case Start(source) =>
+            val url = new URL(source.url)
+            logger.info(s"Starting indexing for '${source.url}' ...")
+            idle(
+              scrape(
+                url,
+                actorContext,
+                data.copy(
+                  host2Source = data.host2Source + (url.getHost -> source)
+                )
+              )
+            )
           case ScrapeFailure(url, reason) =>
             idle(handleFailure(data, actorContext, url, reason))
           case IndexFinished(url, newUrls) =>
@@ -125,26 +136,32 @@ object Supervisor extends LazyLogging {
   ): SupervisorData = {
     val host = url.getHost
     if (host.nonEmpty) {
-      val actor = data.host2Actor.getOrElse(
-        host,
-        context
-          .spawn(
-            HostCrawler(
-              host,
-              data.config.scrapeParallelism,
-              data.config.scrapeInterval,
-              data.config.scrapeTimeout,
-              context.self
-            ),
-            s"Scraper_$host"
+      data.host2Source
+        .get(host)
+        .map { source =>
+          val actor = data.host2Actor.getOrElse(
+            host,
+            context
+              .spawn(
+                HostCrawler(
+                  source,
+                  data.config.scrapeParallelism,
+                  data.config.scrapeInterval,
+                  data.config.scrapeTimeout,
+                  data.config.apiUri,
+                  context.self
+                ),
+                s"Scraper_$host"
+              )
           )
-      )
-      actor ! HostCrawler.Scrape(clean(url))
-      data.copy(
-        host2Actor = data.host2Actor + (host -> actor),
-        scrapeCounts = countVisits(clean(url), data.scrapeCounts),
-        currentlyScraping = data.currentlyScraping + clean(url)
-      )
+          actor ! HostCrawler.Scrape(clean(url))
+          data.copy(
+            host2Actor = data.host2Actor + (host -> actor),
+            scrapeCounts = countVisits(clean(url), data.scrapeCounts),
+            currentlyScraping = data.currentlyScraping + clean(url)
+          )
+        }
+        .getOrElse(data)
     } else {
       logger.warn(s"Cannot get host of url: '$url'!")
       data
@@ -155,7 +172,7 @@ object Supervisor extends LazyLogging {
     data.scrapeCounts.contains(url)
 
   private def inNamespaces(url: URL, data: SupervisorData): Boolean =
-    data.host2Actor.keySet.contains(url.getHost)
+    data.host2Source.keySet.contains(url.getHost)
 
   private def countVisits(url: URL, scrapCounts: Map[URL, Int]): Map[URL, Int] =
     scrapCounts + (url -> (scrapCounts.getOrElse(url, 0) + 1))

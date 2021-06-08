@@ -10,8 +10,11 @@ import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import akka.stream.scaladsl.{FileIO, Source}
 import akka.util.ByteString
 import com.typesafe.scalalogging.LazyLogging
+import info.coverified.graphql.schema.AllUrlSource.AllUrlSourceView
 import info.coverified.spider.SiteScraper.SiteContent
 import info.coverified.spider.Supervisor.SupervisorEvent
+import info.coverified.spider.util.DBConnector
+import sttp.model.Uri
 
 import java.net.URL
 import java.nio.file.Path
@@ -27,13 +30,15 @@ object Indexer extends LazyLogging {
 
   def apply(
       supervisor: ActorRef[SupervisorEvent],
-      file: Path
+      source: AllUrlSourceView,
+      apiUri: Uri
   ): Behavior[IndexerEvent] =
-    idle(supervisor, file)
+    idle(supervisor, source, apiUri)
 
   private def idle(
       supervisor: ActorRef[SupervisorEvent],
-      file: Path
+      source: AllUrlSourceView,
+      apiUri: Uri
   ): Behavior[IndexerEvent] = Behaviors.receive[IndexerEvent] {
     case (ctx, msg) =>
       msg match {
@@ -42,21 +47,43 @@ object Indexer extends LazyLogging {
           logger.debug(s"Indexed '$url'")
           implicit val system: ActorSystem[Nothing] = ctx.system
 
-          // TODO insert into GraphQL instead
-          Source
-            .single(url.toString + "\n")
-            .map(t => ByteString(t))
-            .runWith(FileIO.toPath(file, Set(WRITE, APPEND, CREATE)))
+          handleUrl(source, url, apiUri)
+          //Source
+          //  .single(url.toString + "\n")
+          //  .map(t => ByteString(t))
+          //  .runWith(FileIO.toPath(file, Set(WRITE, APPEND, CREATE)))
 
           supervisor ! Supervisor.IndexFinished(url, content.links)
-          idle(supervisor, file)
+          idle(supervisor, source, apiUri)
 
         case NoIndex(url) =>
           // do not index this url
           supervisor ! Supervisor.IndexFinished(url, Set.empty)
-          idle(supervisor, file)
+          idle(supervisor, source, apiUri)
 
       }
+  }
+
+  /**
+    * Handle the received url by storing it in database.
+    *
+    * @return [[Option]] onto an effect, that might be put to API
+    */
+  def handleUrl(
+      source: AllUrlSourceView,
+      url: URL,
+      apiUri: Uri
+  ): Unit = {
+    logger.info("Handling url: {}", url.toString)
+    if (!source.urls.contains(url.toString)) {
+      DBConnector
+        .sendRequest(
+          DBConnector.storeMutation(
+            DBConnector.createUrlMutation(source, url.toString),
+            apiUri
+          )
+        )
+    }
   }
 
 }

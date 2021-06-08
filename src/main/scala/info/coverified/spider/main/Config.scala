@@ -6,6 +6,7 @@
 package info.coverified.spider.main
 
 import com.typesafe.scalalogging.LazyLogging
+import sttp.model.Uri
 
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
@@ -17,7 +18,8 @@ final case class Config(
     scrapeInterval: FiniteDuration,
     scrapeTimeout: FiniteDuration,
     shutdownTimeout: FiniteDuration,
-    maxRetries: Int
+    maxRetries: Int,
+    apiUri: Uri
 )
 
 object Config extends LazyLogging {
@@ -27,14 +29,16 @@ object Config extends LazyLogging {
   private val SCRAPE_TIMEOUT = "SCRAPE_TIMEOUT"
   private val SHUTDOWN_TIMEOUT = "SHUTDOWN_TIMEOUT"
   private val MAX_RETRIES = "MAX_RETRIES"
+  private val API_URI = "API_URI"
 
   // all time values in milliseconds
-  private val defaultParams: Map[String, Int] = Map(
-    SCRAPE_PARALLELISM -> 100,
-    SCRAPE_INTERVAL -> 500,
-    SCRAPE_TIMEOUT -> 20000,
-    SHUTDOWN_TIMEOUT -> 15000,
-    MAX_RETRIES -> 0
+  private val defaultParams: Map[String, String] = Map(
+    SCRAPE_PARALLELISM -> 100.toString,
+    SCRAPE_INTERVAL -> 500.toString,
+    SCRAPE_TIMEOUT -> 20000.toString,
+    SHUTDOWN_TIMEOUT -> 15000.toString,
+    MAX_RETRIES -> 0.toString,
+    API_URI -> ""
   )
 
   private val envParams: Map[String, String] =
@@ -49,7 +53,6 @@ object Config extends LazyLogging {
               )
               defaultVal
             })
-            .toString
       }
       .toMap
 
@@ -60,7 +63,8 @@ object Config extends LazyLogging {
         envParams(SCRAPE_INTERVAL).toInt millis,
         envParams(SCRAPE_TIMEOUT).toInt millis,
         envParams(SHUTDOWN_TIMEOUT).toInt millis,
-        envParams(MAX_RETRIES).toInt
+        envParams(MAX_RETRIES).toInt,
+        Uri(envParams(API_URI))
       )
     }
   }

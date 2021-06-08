@@ -7,6 +7,7 @@ package info.coverified.spider
 
 import akka.actor.testkit.typed.Effect.{ReceiveTimeoutSet, Spawned}
 import akka.actor.testkit.typed.scaladsl.BehaviorTestKit
+import info.coverified.graphql.schema.AllUrlSource.AllUrlSourceView
 import info.coverified.spider.HostCrawler.HostCrawlerEvent
 import info.coverified.spider.Supervisor.{
   IdleTimeout,
@@ -23,6 +24,11 @@ import scala.concurrent.duration.DurationInt
 
 class SupervisorSpec extends AnyWordSpec with Matchers {
 
+  private val source1 =
+    AllUrlSourceView("1", None, None, "https://www.example1.com/", List.empty)
+  private val source2 =
+    AllUrlSourceView("2", None, None, "https://www.example2.com/", List.empty)
+
   "Initialization of the Supervisor" should {
     "set up a receive timeout" in {
       val testKit: BehaviorTestKit[Supervisor.SupervisorEvent] =
@@ -37,7 +43,7 @@ class SupervisorSpec extends AnyWordSpec with Matchers {
         BehaviorTestKit(Supervisor(Config().get))
       testKit.expectEffectType[ReceiveTimeoutSet[IdleTimeout.type]]
 
-      testKit.run(Start(new URL("https://www.example1.com/")))
+      testKit.run(Start(source1))
       val hostCrawler1 = testKit.expectEffectType[Spawned[HostCrawlerEvent]]
       hostCrawler1.childName shouldBe "Scraper_www.example1.com"
       val hostCrawlerInbox1 = testKit.childInbox(hostCrawler1.ref)
@@ -45,7 +51,7 @@ class SupervisorSpec extends AnyWordSpec with Matchers {
         HostCrawler.Scrape(new URL("https://www.example1.com"))
       )
 
-      testKit.run(Start(new URL("https://www.example2.com/")))
+      testKit.run(Start(source2))
       val hostCrawler2 = testKit.expectEffectType[Spawned[HostCrawlerEvent]]
       hostCrawler2.childName shouldBe "Scraper_www.example2.com"
       val hostCrawlerInbox2 = testKit.childInbox(hostCrawler2.ref)
@@ -59,7 +65,7 @@ class SupervisorSpec extends AnyWordSpec with Matchers {
         BehaviorTestKit(Supervisor(Config().get))
       testKit.expectEffectType[ReceiveTimeoutSet[IdleTimeout.type]]
 
-      testKit.run(Start(new URL("https://www.example1.com/")))
+      testKit.run(Start(source1))
       testKit.expectEffectType[Spawned[_]]
 
       testKit.run(
@@ -79,14 +85,14 @@ class SupervisorSpec extends AnyWordSpec with Matchers {
         BehaviorTestKit(Supervisor(Config().get))
       testKit.expectEffectType[ReceiveTimeoutSet[IdleTimeout.type]]
 
-      testKit.run(Start(new URL("https://www.example1.com/")))
+      testKit.run(Start(source1))
       val hostCrawler1 = testKit.expectEffectType[Spawned[HostCrawlerEvent]]
       val hostCrawlerInbox1 = testKit.childInbox(hostCrawler1.ref)
       hostCrawlerInbox1.expectMessage(
         HostCrawler.Scrape(new URL("https://www.example1.com"))
       )
 
-      testKit.run(Start(new URL("https://www.example2.com/")))
+      testKit.run(Start(source2))
       val hostCrawler2 = testKit.expectEffectType[Spawned[HostCrawlerEvent]]
       val hostCrawlerInbox2 = testKit.childInbox(hostCrawler2.ref)
       hostCrawlerInbox2.expectMessage(
@@ -116,7 +122,7 @@ class SupervisorSpec extends AnyWordSpec with Matchers {
         BehaviorTestKit(Supervisor(Config().get))
       testKit.expectEffectType[ReceiveTimeoutSet[IdleTimeout.type]]
 
-      testKit.run(Start(new URL("https://www.example1.com/")))
+      testKit.run(Start(source1))
       testKit.expectEffectType[Spawned[_]]
 
       testKit.run(
@@ -137,7 +143,7 @@ class SupervisorSpec extends AnyWordSpec with Matchers {
         BehaviorTestKit(Supervisor(Config().get.copy(maxRetries = 1)))
       testKit.expectEffectType[ReceiveTimeoutSet[IdleTimeout.type]]
 
-      testKit.run(Start(new URL("https://www.example1.com/")))
+      testKit.run(Start(source1))
       val hostCrawler1 = testKit.expectEffectType[Spawned[HostCrawlerEvent]]
       val hostCrawlerInbox1 = testKit.childInbox(hostCrawler1.ref)
       hostCrawlerInbox1.expectMessage(

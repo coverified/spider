@@ -7,11 +7,20 @@ package info.coverified.spider
 
 import akka.actor.testkit.typed.Effect.{Spawned, TimerScheduled}
 import akka.actor.testkit.typed.scaladsl.BehaviorTestKit
-import info.coverified.spider.main.Config
+import info.coverified.graphql.schema.AllUrlSource.AllUrlSourceView
+import sttp.model.Uri
 
 import java.net.URL
 
 class HostCrawlerSpec extends ActorSpec {
+
+  private val source = AllUrlSourceView(
+    "-1",
+    Some("www.example.com"),
+    None,
+    "http://www.example.com",
+    List.empty
+  )
 
   "Initialization of HostCrawler" should {
     "set a timer and spawn Indexer and SiteScrapers" in {
@@ -21,10 +30,11 @@ class HostCrawlerSpec extends ActorSpec {
       val behaviorKit: BehaviorTestKit[HostCrawler.HostCrawlerEvent] =
         BehaviorTestKit(
           HostCrawler(
-            "www.example.com",
+            source,
             defaultConfig.scrapeParallelism,
             defaultConfig.scrapeInterval,
             defaultConfig.scrapeTimeout,
+            Uri("www.noapi.com"),
             supervisor.ref
           )
         )
@@ -52,10 +62,11 @@ class HostCrawlerSpec extends ActorSpec {
       val behaviorKit: BehaviorTestKit[HostCrawler.HostCrawlerEvent] =
         BehaviorTestKit(
           HostCrawler(
-            "www.example.com",
+            source,
             defaultConfig.scrapeParallelism,
             defaultConfig.scrapeInterval,
             defaultConfig.scrapeTimeout,
+            Uri("www.noapi.com"),
             supervisor.ref
           )
         )
@@ -92,10 +103,11 @@ class HostCrawlerSpec extends ActorSpec {
       val behaviorKit: BehaviorTestKit[HostCrawler.HostCrawlerEvent] =
         BehaviorTestKit(
           HostCrawler(
-            "www.example.com",
+            source,
             defaultConfig.scrapeParallelism,
             defaultConfig.scrapeInterval,
             defaultConfig.scrapeTimeout,
+            Uri("www.noapi.com"),
             supervisor.ref
           )
         )
@@ -144,10 +156,11 @@ class HostCrawlerSpec extends ActorSpec {
       val behaviorKit: BehaviorTestKit[HostCrawler.HostCrawlerEvent] =
         BehaviorTestKit(
           HostCrawler(
-            "www.example.com",
+            source,
             defaultConfig.scrapeParallelism,
             defaultConfig.scrapeInterval,
             defaultConfig.scrapeTimeout,
+            Uri("www.noapi.com"),
             supervisor.ref
           )
         )

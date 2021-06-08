@@ -8,12 +8,13 @@ package info.coverified.spider
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, Routers}
 import akka.actor.typed.{ActorRef, Behavior}
 import com.typesafe.scalalogging.LazyLogging
+import info.coverified.graphql.schema.AllUrlSource.AllUrlSourceView
 import info.coverified.spider.Indexer.IndexerEvent
 import info.coverified.spider.SiteScraper.SiteScraperEvent
 import info.coverified.spider.Supervisor.SupervisorEvent
+import sttp.model.Uri
 
 import java.net.URL
-import java.nio.file.Paths
 import scala.collection.parallel.immutable.ParVector
 import scala.concurrent.duration._
 import scala.language.{existentials, postfixOps}
@@ -38,18 +39,21 @@ object HostCrawler extends LazyLogging {
   )
 
   def apply(
-      host: String,
+      source: AllUrlSourceView,
       noOfSiteScraper: Int,
       scrapeInterval: FiniteDuration,
       scrapeTimeout: FiniteDuration,
+      apiUri: Uri,
       supervisor: ActorRef[SupervisorEvent]
   ): Behavior[HostCrawlerEvent] = {
     Behaviors.setup { ctx =>
       Behaviors.withTimers { timer =>
         // self timer to trigger scraping process with delay
         timer.startTimerAtFixedRate(Process, scrapeInterval)
+
+        val host = new URL(source.url).getHost
         val indexer = ctx.spawn(
-          Indexer(supervisor, Paths.get(host + ".txt")),
+          Indexer(supervisor, source, apiUri),
           s"Indexer_$host"
         )
         val pool = Routers
