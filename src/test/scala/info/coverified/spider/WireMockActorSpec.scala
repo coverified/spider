@@ -6,7 +6,6 @@
 package info.coverified.spider
 
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.common.Slf4jNotifier
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 
@@ -19,7 +18,6 @@ trait WireMockActorSpec
     wireMockConfig()
       .bindAddress("127.0.0.1")
       .dynamicPort()
-      .notifier(new Slf4jNotifier(true))
   )
 
   protected def port: Int = wireMockServer.port()
