@@ -6,34 +6,14 @@
 package info.coverified.spider
 
 import akka.actor.testkit.typed.scaladsl.BehaviorTestKit
-import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
-import com.github.tomakehurst.wiremock.client.WireMock.{status, urlEqualTo}
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
+import com.github.tomakehurst.wiremock.client.WireMock.status
 import info.coverified.spider.SiteScraper.SiteContent
-import org.scalatest.BeforeAndAfterAll
 
 import java.net.{URL, UnknownHostException}
 import scala.concurrent.duration.DurationInt
 
-class SiteScraperSpec extends ActorSpec with BeforeAndAfterAll {
-
-  // pick a random free port
-  val wireMockServer = new WireMockServer(
-    wireMockConfig().dynamicPort().dynamicHttpsPort()
-  )
-
-  private def port: Int = wireMockServer.port()
-
-  override def beforeAll(): Unit = {
-    wireMockServer.start()
-    super.beforeAll()
-  }
-
-  override def afterAll(): Unit = {
-    wireMockServer.stop()
-    super.afterAll()
-  }
+class SiteScraperSpec extends WireMockActorSpec {
 
   "Scrape message received by SiteScraper" should {
     "result in indexation and extraction of URL if status code is ok" in {
@@ -47,7 +27,7 @@ class SiteScraperSpec extends ActorSpec with BeforeAndAfterAll {
 
       wireMockServer.stubFor(
         WireMock
-          .get(urlEqualTo("/page1"))
+          .get("/page1")
           .willReturn(
             status(200)
               .withHeader("Content-Type", "text/html")
@@ -85,7 +65,7 @@ class SiteScraperSpec extends ActorSpec with BeforeAndAfterAll {
       // set up test page
       wireMockServer.stubFor(
         WireMock
-          .get(urlEqualTo("/page2"))
+          .get("/page2")
           .willReturn(
             status(404)
               .withHeader("Content-Type", "text/html")

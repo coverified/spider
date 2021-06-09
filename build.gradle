@@ -14,6 +14,8 @@ ext {
 	scalaBinaryVersion = '2.13.5'
 	javaVersion = JavaVersion.VERSION_11
 
+	calibanVersion = '0.10.1'
+
 	scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator //location of script plugins
 
 	mainClass = 'info.coverified.spider.main.Run'
@@ -48,13 +50,13 @@ dependencies {
 	implementation 'io.sentry:sentry-log4j2:4.3.0'
 
 	// https://mvnrepository.com/artifact/com.github.ghostdogpr/caliban
-	implementation group: 'com.github.ghostdogpr', name: "caliban_${scalaVersion}", version: '0.9.5'
+	implementation group: 'com.github.ghostdogpr', name: "caliban_${scalaVersion}", version: "${calibanVersion}"
 
 	// https://mvnrepository.com/artifact/com.github.ghostdogpr/caliban-client
-	implementation group: 'com.github.ghostdogpr', name: "caliban-client_${scalaVersion}", version: '0.9.5'
+	implementation group: 'com.github.ghostdogpr', name: "caliban-client_${scalaVersion}", version: "${calibanVersion}"
 
 	// https://mvnrepository.com/artifact/com.github.ghostdogpr/caliban-tools
-	implementation group: 'com.github.ghostdogpr', name: "caliban-tools_${scalaVersion}", version: '0.9.5'
+	implementation group: 'com.github.ghostdogpr', name: "caliban-tools_${scalaVersion}", version: "${calibanVersion}"
 
 	// cmd args parser //
 	implementation "com.github.scopt:scopt_${scalaVersion}:4.0.0"
@@ -79,7 +81,7 @@ dependencies {
 	// testing
 	testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.8"
 	testRuntimeClasspath 'com.vladsch.flexmark:flexmark-all:0.35.10'
-	testImplementation "com.github.tomakehurst:wiremock-jre8:2.28.0" // for local mock server
+	testImplementation "com.github.tomakehurst:wiremock-jre8:2.28.1" // for local mock server
 
 }
 

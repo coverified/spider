@@ -6,16 +6,19 @@
 package info.coverified.spider.util
 
 import caliban.client.Operations.{RootMutation, RootQuery}
-import caliban.client.SelectionBuilder
+import caliban.client.{CalibanClientError, SelectionBuilder}
 import com.typesafe.scalalogging.LazyLogging
-import info.coverified.graphql.Connector
-import info.coverified.graphql.schema.CoVerifiedClientSchema._
 import info.coverified.graphql.schema.AllUrlSource.AllUrlSourceView
+import info.coverified.graphql.schema.CoVerifiedClientSchema._
 import info.coverified.graphql.schema.SimpleUrl.SimpleUrlView
 import info.coverified.graphql.schema.{AllUrlSource, SimpleUrl}
-import sttp.client3.asynchttpclient.zio.{AsyncHttpClientZioBackend, SttpClient}
+import sttp.client3.Request
+import sttp.client3.asynchttpclient.zio.{
+  AsyncHttpClientZioBackend,
+  SttpClient,
+  send
+}
 import sttp.model.Uri
-import zio.console.Console
 import zio.{RIO, ZIO}
 
 object DBConnector extends LazyLogging {
@@ -56,12 +59,11 @@ object DBConnector extends LazyLogging {
     */
   def getAllSources(
       apiUri: Uri
-  ): ZIO[Console with SttpClient, Throwable, List[AllUrlSourceView]] = {
-    Connector
-      .sendRequest {
-        getAllSourcesRequest.toRequest(apiUri)
-      }
-      .map(_.map(_.flatten).getOrElse(List.empty))
+  ): ZIO[SttpClient, Throwable, Either[CalibanClientError, List[
+    AllUrlSourceView
+  ]]] = {
+    sendRequest(getAllSourcesRequest.toRequest(apiUri))
+      .map(_.map(_.map(_.flatten).getOrElse(List.empty)))
   }
 
   /**
@@ -75,15 +77,35 @@ object DBConnector extends LazyLogging {
         SimpleUrlView
       ]],
       apiUri: Uri
-  ): RIO[Console with SttpClient, Option[SimpleUrlView]] = {
-    Connector.sendRequest(mutation.toRequest(apiUri))
-  }
+  ): ZIO[SttpClient, Throwable, Either[CalibanClientError, Option[
+    SimpleUrlView
+  ]]] =
+    sendRequest(mutation.toRequest(apiUri))
 
   private lazy val zioRuntime = zio.Runtime.default
 
-  def sendRequest[A](request: ZIO[Console with SttpClient, Throwable, A]): A =
-    zioRuntime.unsafeRun(
-      request
-        .provideCustomLayer(AsyncHttpClientZioBackend.layer())
-    )
+  def sendRequest[T <: Throwable, A](
+      request: ZIO[SttpClient, T, Either[T, A]]
+  ): A =
+    try {
+      zioRuntime.unsafeRun(
+        request
+          .provideCustomLayer(AsyncHttpClientZioBackend.layer())
+      ) match {
+        case Right(response) =>
+          logger.debug(
+            "Response: {}",
+            response
+          )
+          response
+        case Left(error) =>
+          throw error
+      }
+    }
+
+  private def sendRequest[A](
+      req: Request[Either[CalibanClientError, A], Any]
+  ): RIO[SttpClient, Either[CalibanClientError, A]] = {
+    send(req).map(_.body)
+  }
 }

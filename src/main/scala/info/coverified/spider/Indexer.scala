@@ -7,8 +7,6 @@ package info.coverified.spider
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
-import akka.stream.scaladsl.{FileIO, Source}
-import akka.util.ByteString
 import com.typesafe.scalalogging.LazyLogging
 import info.coverified.graphql.schema.AllUrlSource.AllUrlSourceView
 import info.coverified.spider.SiteScraper.SiteContent
@@ -17,8 +15,6 @@ import info.coverified.spider.util.DBConnector
 import sttp.model.Uri
 
 import java.net.URL
-import java.nio.file.Path
-import java.nio.file.StandardOpenOption.{APPEND, CREATE, WRITE}
 
 object Indexer extends LazyLogging {
 
@@ -76,13 +72,18 @@ object Indexer extends LazyLogging {
   ): Unit = {
     logger.info("Handling url: {}", url.toString)
     if (!source.urls.contains(url.toString)) {
-      DBConnector
-        .sendRequest(
-          DBConnector.storeMutation(
-            DBConnector.createUrlMutation(source, url.toString),
-            apiUri
+      try {
+        DBConnector
+          .sendRequest(
+            DBConnector.storeMutation(
+              DBConnector.createUrlMutation(source, url.toString),
+              apiUri
+            )
           )
-        )
+      } catch {
+        case e: Throwable =>
+          e.printStackTrace()
+      }
     }
   }
 
