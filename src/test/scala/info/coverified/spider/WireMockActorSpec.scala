@@ -13,11 +13,11 @@ trait WireMockActorSpec
     extends ActorSpec
     with BeforeAndAfterAll
     with BeforeAndAfterEach {
-  // pick a random free port
+
   protected val wireMockServer = new WireMockServer(
     wireMockConfig()
       .bindAddress("127.0.0.1")
-      .dynamicPort()
+      .dynamicPort() // pick a random free port
   )
 
   protected def port: Int = wireMockServer.port()

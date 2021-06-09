@@ -15,6 +15,7 @@ import scala.sys.process._
   * @version 0.1
   * @since 25.02.21
   */
+@Deprecated
 case class FetchUrlWrapper(scriptPath: String) {
 
   def run(url: String, outputPath: File, outputFileName: String): Int = {

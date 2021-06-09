@@ -18,8 +18,8 @@ object Main extends LazyLogging {
 
     Config() match {
       case Failure(exception) =>
-        // todo
-        throw exception
+        logger.error("Parsing config failed.", exception)
+        System.exit(1)
       case Success(cfg) =>
         val system = ActorSystem(Supervisor(cfg), "Scraper")
 
