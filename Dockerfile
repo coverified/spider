@@ -12,13 +12,11 @@ ENV PROJECT_VERSION=$PROJECT_VERSION
 ENV MAIN_CLASS=$MAIN_CLASS
 ENV SENTRY_DSN=$SENTRY_DSN
 
-CMD [ \
-    "java", \
-    "--add-opens", \
-    "java.base/jdk.internal.misc=ALL-UNNAMED", \
-    "-Dio.netty.tryReflectionSetAccessible=true", \
-    "--illegal-access=warn", \
-    "-cp", \
-    "${WORKDIR}/${PROJECT_NAME}-${PROJECT_VERSION}-all.jar", \
-    "${MAIN_CLASS}" \
-    ]
+CMD java \
+    --add-opens \
+    java.base/jdk.internal.misc=ALL-UNNAMED \
+    -Dio.netty.tryReflectionSetAccessible=true \
+    --illegal-access=warn \
+    -cp \
+    $WORKDIR/$PROJECT_NAME-$PROJECT_VERSION-all.jar \
+    $MAIN_CLASS
