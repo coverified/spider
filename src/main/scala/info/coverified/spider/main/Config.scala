@@ -32,29 +32,36 @@ object Config extends LazyLogging {
   private val API_URI = "API_URI"
 
   // all time values in milliseconds
-  private val defaultParams: Map[String, String] = Map(
-    SCRAPE_PARALLELISM -> 100.toString,
-    SCRAPE_INTERVAL -> 500.toString,
-    SCRAPE_TIMEOUT -> 20000.toString,
-    SHUTDOWN_TIMEOUT -> 15000.toString,
-    MAX_RETRIES -> 0.toString,
-    API_URI -> ""
+  private val defaultParams: Map[String, Option[String]] = Map(
+    SCRAPE_PARALLELISM -> Some(100.toString),
+    SCRAPE_INTERVAL -> Some(500.toString),
+    SCRAPE_TIMEOUT -> Some(20000.toString),
+    SHUTDOWN_TIMEOUT -> Some(15000.toString),
+    MAX_RETRIES -> Some(0.toString),
+    API_URI -> None
   )
 
   private val envParams: Map[String, String] =
-    defaultParams.keys
-      .zip(defaultParams.values)
+    defaultParams
       .map {
         case (envParam, defaultVal) =>
           envParam -> sys.env
-            .getOrElse(envParam, {
-              logger.warn(
-                s"No env value provided for param $envParam. Fallback to default value: $defaultVal "
-              )
-              defaultVal
-            })
+            .getOrElse(
+              envParam, {
+                defaultVal match {
+                  case Some(value) =>
+                    logger.warn(
+                      s"No env value provided for param $envParam. Fallback to default value: $defaultVal "
+                    )
+                    value
+                  case None =>
+                    throw new RuntimeException(
+                      s"Environment variable $envParam was not set and has no default value."
+                    )
+                }
+              }
+            )
       }
-      .toMap
 
   def apply(): Try[Config] = {
     Try {
@@ -64,7 +71,7 @@ object Config extends LazyLogging {
         envParams(SCRAPE_TIMEOUT).toInt millis,
         envParams(SHUTDOWN_TIMEOUT).toInt millis,
         envParams(MAX_RETRIES).toInt,
-        Uri(envParams(API_URI))
+        Uri.unsafeParse(envParams(API_URI))
       )
     }
   }
