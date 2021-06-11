@@ -21,6 +21,6 @@ CMD [ \
     "-Dio.netty.tryReflectionSetAccessible=true", \
     "--illegal-access=warn", \
     "-cp", \
-    "$WORKDIR/$PROJECT_NAME-$PROJECT_VERSION-all.jar", \
-    "$MAIN_CLASS" \
+    "${WORKDIR}/${PROJECT_NAME}-${PROJECT_VERSION}-all.jar", \
+    "${MAIN_CLASS}" \
     ]

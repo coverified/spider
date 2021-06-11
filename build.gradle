@@ -18,7 +18,7 @@ ext {
 
 	scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator //location of script plugins
 
-	mainClass = 'info.coverified.spider.main.Run'
+	mainClass = 'info.coverified.spider.main.Main'
 }
 
 apply from: scriptsLocation + 'spotless.gradle'
