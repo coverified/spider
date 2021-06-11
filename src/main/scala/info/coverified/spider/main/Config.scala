@@ -64,7 +64,7 @@ object Config extends LazyLogging {
         envParams(SCRAPE_TIMEOUT).toInt millis,
         envParams(SHUTDOWN_TIMEOUT).toInt millis,
         envParams(MAX_RETRIES).toInt,
-        Uri(envParams(API_URI))
+        Uri.unsafeParse(envParams(API_URI))
       )
     }
   }
