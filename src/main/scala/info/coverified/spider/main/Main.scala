@@ -25,7 +25,7 @@ object Main extends LazyLogging {
 
         DBConnector
           .sendRequest(
-            DBConnector.getAllSources(cfg.apiUri)
+            DBConnector.getAllSources(cfg.apiUrl)
           )
           .foreach { source =>
             system ! Supervisor.Start(source)

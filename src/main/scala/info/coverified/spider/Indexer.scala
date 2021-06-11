@@ -27,14 +27,14 @@ object Indexer extends LazyLogging {
   def apply(
       supervisor: ActorRef[SupervisorEvent],
       source: AllUrlSourceView,
-      apiUri: Uri
+      apiUrl: Uri
   ): Behavior[IndexerEvent] =
-    idle(supervisor, source, apiUri)
+    idle(supervisor, source, apiUrl)
 
   private def idle(
       supervisor: ActorRef[SupervisorEvent],
       source: AllUrlSourceView,
-      apiUri: Uri
+      apiUrl: Uri
   ): Behavior[IndexerEvent] = Behaviors.receive[IndexerEvent] {
     case (ctx, msg) =>
       msg match {
@@ -43,19 +43,19 @@ object Indexer extends LazyLogging {
           logger.debug(s"Indexed '$url'")
           implicit val system: ActorSystem[Nothing] = ctx.system
 
-          handleUrl(source, url, apiUri)
+          handleUrl(source, url, apiUrl)
           //Source
           //  .single(url.toString + "\n")
           //  .map(t => ByteString(t))
           //  .runWith(FileIO.toPath(file, Set(WRITE, APPEND, CREATE)))
 
           supervisor ! Supervisor.IndexFinished(url, content.links)
-          idle(supervisor, source, apiUri)
+          idle(supervisor, source, apiUrl)
 
         case NoIndex(url) =>
           // do not index this url
           supervisor ! Supervisor.IndexFinished(url, Set.empty)
-          idle(supervisor, source, apiUri)
+          idle(supervisor, source, apiUrl)
 
       }
   }
@@ -68,7 +68,7 @@ object Indexer extends LazyLogging {
   def handleUrl(
       source: AllUrlSourceView,
       url: URL,
-      apiUri: Uri
+      apiUrl: Uri
   ): Unit = {
     logger.info("Handling url: {}", url.toString)
     if (!source.urls.contains(url.toString)) {
@@ -77,7 +77,7 @@ object Indexer extends LazyLogging {
           .sendRequest(
             DBConnector.storeMutation(
               DBConnector.createUrlMutation(source, url.toString),
-              apiUri
+              apiUrl
             )
           )
       } catch {

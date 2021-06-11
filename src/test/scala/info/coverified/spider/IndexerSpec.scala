@@ -39,10 +39,10 @@ class IndexerSpec extends WireMockActorSpec {
         "Supervisor"
       )
 
-      val apiUri = Uri.unsafeParse(s"http://127.0.0.1:$port/api")
+      val apiUrl = Uri.unsafeParse(s"http://127.0.0.1:$port/api")
 
       val indexer = testKit.spawn(
-        Indexer(supervisor.ref, source, apiUri)
+        Indexer(supervisor.ref, source, apiUrl)
       )
 
       val crawledUrl = new URL("http://www.example1.com")
@@ -93,10 +93,10 @@ class IndexerSpec extends WireMockActorSpec {
         "Supervisor"
       )
 
-      val apiUri = Uri.unsafeParse(s"http://127.0.0.1:$port/api")
+      val apiUrl = Uri.unsafeParse(s"http://127.0.0.1:$port/api")
 
       val indexer = testKit.spawn(
-        Indexer(supervisor.ref, source, apiUri)
+        Indexer(supervisor.ref, source, apiUrl)
       )
 
       val crawledUrl = new URL("http://www.example1.com")
@@ -130,10 +130,10 @@ class IndexerSpec extends WireMockActorSpec {
         "Supervisor"
       )
 
-      val apiUri = Uri.unsafeParse(s"http://127.0.0.1:$port/api")
+      val apiUrl = Uri.unsafeParse(s"http://127.0.0.1:$port/api")
 
       val indexer = testKit.spawn(
-        Indexer(supervisor.ref, source, apiUri)
+        Indexer(supervisor.ref, source, apiUrl)
       )
 
       val crawledUrl = new URL("http://www.example1.com")

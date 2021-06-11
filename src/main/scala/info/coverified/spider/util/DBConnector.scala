@@ -58,11 +58,11 @@ object DBConnector extends LazyLogging {
     * @return An effect, that evaluates to a list of [[SimpleUrlView]]s
     */
   def getAllSources(
-      apiUri: Uri
+      apiUrl: Uri
   ): ZIO[SttpClient, Throwable, Either[CalibanClientError, List[
     AllUrlSourceView
   ]]] = {
-    sendRequest(getAllSourcesRequest.toRequest(apiUri))
+    sendRequest(getAllSourcesRequest.toRequest(apiUrl))
       .map(_.map(_.map(_.flatten).getOrElse(List.empty)))
   }
 
@@ -76,11 +76,11 @@ object DBConnector extends LazyLogging {
       mutation: SelectionBuilder[RootMutation, Option[
         SimpleUrlView
       ]],
-      apiUri: Uri
+      apiUrl: Uri
   ): ZIO[SttpClient, Throwable, Either[CalibanClientError, Option[
     SimpleUrlView
   ]]] =
-    sendRequest(mutation.toRequest(apiUri))
+    sendRequest(mutation.toRequest(apiUrl))
 
   private lazy val zioRuntime = zio.Runtime.default
 
