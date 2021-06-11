@@ -58,12 +58,16 @@ object DBConnector extends LazyLogging {
     * @return An effect, that evaluates to a list of [[SimpleUrlView]]s
     */
   def getAllSources(
-      apiUrl: Uri
+      apiUrl: Uri,
+      authSecret: String
   ): ZIO[SttpClient, Throwable, Either[CalibanClientError, List[
     AllUrlSourceView
   ]]] = {
-    sendRequest(getAllSourcesRequest.toRequest(apiUrl))
-      .map(_.map(_.map(_.flatten).getOrElse(List.empty)))
+    sendRequest(
+      getAllSourcesRequest
+        .toRequest(apiUrl)
+        .header("x-coverified-internal-auth", authSecret)
+    ).map(_.map(_.map(_.flatten).getOrElse(List.empty)))
   }
 
   /**
@@ -76,11 +80,16 @@ object DBConnector extends LazyLogging {
       mutation: SelectionBuilder[RootMutation, Option[
         SimpleUrlView
       ]],
-      apiUrl: Uri
+      apiUrl: Uri,
+      authSecret: String
   ): ZIO[SttpClient, Throwable, Either[CalibanClientError, Option[
     SimpleUrlView
   ]]] =
-    sendRequest(mutation.toRequest(apiUrl))
+    sendRequest(
+      mutation
+        .toRequest(apiUrl)
+        .header("x-coverified-internal-auth", authSecret)
+    )
 
   private lazy val zioRuntime = zio.Runtime.default
 

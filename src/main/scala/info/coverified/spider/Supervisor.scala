@@ -149,6 +149,7 @@ object Supervisor extends LazyLogging {
                   data.config.scrapeInterval,
                   data.config.scrapeTimeout,
                   data.config.apiUrl,
+                  data.config.authSecret,
                   context.self
                 ),
                 s"Scraper_$host"

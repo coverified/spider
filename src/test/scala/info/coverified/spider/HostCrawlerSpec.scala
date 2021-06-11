@@ -22,6 +22,9 @@ class HostCrawlerSpec extends ActorSpec {
     List.empty
   )
 
+  private val mockApiUrl = Uri("www.noapi.com")
+  private val mockAuthSecret = ""
+
   "Initialization of HostCrawler" should {
     "set a timer and spawn Indexer and SiteScrapers" in {
       val supervisor =
@@ -34,7 +37,8 @@ class HostCrawlerSpec extends ActorSpec {
             defaultConfig.scrapeParallelism,
             defaultConfig.scrapeInterval,
             defaultConfig.scrapeTimeout,
-            Uri("www.noapi.com"),
+            mockApiUrl,
+            mockAuthSecret,
             supervisor.ref
           )
         )
@@ -66,7 +70,8 @@ class HostCrawlerSpec extends ActorSpec {
             defaultConfig.scrapeParallelism,
             defaultConfig.scrapeInterval,
             defaultConfig.scrapeTimeout,
-            Uri("www.noapi.com"),
+            mockApiUrl,
+            mockAuthSecret,
             supervisor.ref
           )
         )
@@ -107,7 +112,8 @@ class HostCrawlerSpec extends ActorSpec {
             defaultConfig.scrapeParallelism,
             defaultConfig.scrapeInterval,
             defaultConfig.scrapeTimeout,
-            Uri("www.noapi.com"),
+            mockApiUrl,
+            mockAuthSecret,
             supervisor.ref
           )
         )
@@ -160,7 +166,8 @@ class HostCrawlerSpec extends ActorSpec {
             defaultConfig.scrapeParallelism,
             defaultConfig.scrapeInterval,
             defaultConfig.scrapeTimeout,
-            Uri("www.noapi.com"),
+            mockApiUrl,
+            mockAuthSecret,
             supervisor.ref
           )
         )

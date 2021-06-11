@@ -24,6 +24,8 @@ import scala.concurrent.duration.DurationInt
   */
 class IndexerSpec extends WireMockActorSpec {
 
+  private val mockAuthSecret = ""
+
   "Index message received by Indexer" should {
     "result in appropriate IndexFinished being sent to Supervisor if url already exists" in {
       val source =
@@ -42,7 +44,7 @@ class IndexerSpec extends WireMockActorSpec {
       val apiUrl = Uri.unsafeParse(s"http://127.0.0.1:$port/api")
 
       val indexer = testKit.spawn(
-        Indexer(supervisor.ref, source, apiUrl)
+        Indexer(supervisor.ref, source, apiUrl, mockAuthSecret)
       )
 
       val crawledUrl = new URL("http://www.example1.com")
@@ -96,7 +98,7 @@ class IndexerSpec extends WireMockActorSpec {
       val apiUrl = Uri.unsafeParse(s"http://127.0.0.1:$port/api")
 
       val indexer = testKit.spawn(
-        Indexer(supervisor.ref, source, apiUrl)
+        Indexer(supervisor.ref, source, apiUrl, mockAuthSecret)
       )
 
       val crawledUrl = new URL("http://www.example1.com")
@@ -133,7 +135,7 @@ class IndexerSpec extends WireMockActorSpec {
       val apiUrl = Uri.unsafeParse(s"http://127.0.0.1:$port/api")
 
       val indexer = testKit.spawn(
-        Indexer(supervisor.ref, source, apiUrl)
+        Indexer(supervisor.ref, source, apiUrl, mockAuthSecret)
       )
 
       val crawledUrl = new URL("http://www.example1.com")

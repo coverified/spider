@@ -27,14 +27,16 @@ object Indexer extends LazyLogging {
   def apply(
       supervisor: ActorRef[SupervisorEvent],
       source: AllUrlSourceView,
-      apiUrl: Uri
+      apiUrl: Uri,
+      authSecret: String
   ): Behavior[IndexerEvent] =
-    idle(supervisor, source, apiUrl)
+    idle(supervisor, source, apiUrl, authSecret)
 
   private def idle(
       supervisor: ActorRef[SupervisorEvent],
       source: AllUrlSourceView,
-      apiUrl: Uri
+      apiUrl: Uri,
+      authSecret: String
   ): Behavior[IndexerEvent] = Behaviors.receive[IndexerEvent] {
     case (ctx, msg) =>
       msg match {
@@ -43,19 +45,19 @@ object Indexer extends LazyLogging {
           logger.debug(s"Indexed '$url'")
           implicit val system: ActorSystem[Nothing] = ctx.system
 
-          handleUrl(source, url, apiUrl)
+          handleUrl(source, url, apiUrl, authSecret)
           //Source
           //  .single(url.toString + "\n")
           //  .map(t => ByteString(t))
           //  .runWith(FileIO.toPath(file, Set(WRITE, APPEND, CREATE)))
 
           supervisor ! Supervisor.IndexFinished(url, content.links)
-          idle(supervisor, source, apiUrl)
+          idle(supervisor, source, apiUrl, authSecret)
 
         case NoIndex(url) =>
           // do not index this url
           supervisor ! Supervisor.IndexFinished(url, Set.empty)
-          idle(supervisor, source, apiUrl)
+          idle(supervisor, source, apiUrl, authSecret)
 
       }
   }
@@ -68,7 +70,8 @@ object Indexer extends LazyLogging {
   def handleUrl(
       source: AllUrlSourceView,
       url: URL,
-      apiUrl: Uri
+      apiUrl: Uri,
+      authSecret: String
   ): Unit = {
     logger.info("Handling url: {}", url.toString)
     if (!source.urls.contains(url.toString)) {
@@ -77,7 +80,8 @@ object Indexer extends LazyLogging {
           .sendRequest(
             DBConnector.storeMutation(
               DBConnector.createUrlMutation(source, url.toString),
-              apiUrl
+              apiUrl,
+              authSecret
             )
           )
       } catch {

@@ -19,7 +19,8 @@ final case class Config(
     scrapeTimeout: FiniteDuration,
     shutdownTimeout: FiniteDuration,
     maxRetries: Int,
-    apiUrl: Uri
+    apiUrl: Uri,
+    authSecret: String
 )
 
 object Config extends LazyLogging {
@@ -30,6 +31,7 @@ object Config extends LazyLogging {
   private val SHUTDOWN_TIMEOUT = "SHUTDOWN_TIMEOUT"
   private val MAX_RETRIES = "MAX_RETRIES"
   private val API_URL = "API_URL"
+  private val AUTH_SECRET = "AUTH_SECRET"
 
   // all time values in milliseconds
   private val defaultParams: Map[String, String] = Map(
@@ -38,7 +40,8 @@ object Config extends LazyLogging {
     SCRAPE_TIMEOUT -> 20000.toString,
     SHUTDOWN_TIMEOUT -> 15000.toString,
     MAX_RETRIES -> 0.toString,
-    API_URL -> ""
+    API_URL -> "",
+    AUTH_SECRET -> ""
   )
 
   private val envParams: Map[String, String] =
@@ -64,7 +67,8 @@ object Config extends LazyLogging {
         envParams(SCRAPE_TIMEOUT).toInt millis,
         envParams(SHUTDOWN_TIMEOUT).toInt millis,
         envParams(MAX_RETRIES).toInt,
-        Uri.unsafeParse(envParams(API_URL))
+        Uri.unsafeParse(envParams(API_URL)),
+        envParams(AUTH_SECRET)
       )
     }
   }

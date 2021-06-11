@@ -44,6 +44,7 @@ object HostCrawler extends LazyLogging {
       scrapeInterval: FiniteDuration,
       scrapeTimeout: FiniteDuration,
       apiUrl: Uri,
+      authSecret: String,
       supervisor: ActorRef[SupervisorEvent]
   ): Behavior[HostCrawlerEvent] = {
     Behaviors.setup { ctx =>
@@ -53,7 +54,7 @@ object HostCrawler extends LazyLogging {
 
         val host = new URL(source.url).getHost
         val indexer = ctx.spawn(
-          Indexer(supervisor, source, apiUrl),
+          Indexer(supervisor, source, apiUrl, authSecret),
           s"Indexer_$host"
         )
         val pool = Routers
