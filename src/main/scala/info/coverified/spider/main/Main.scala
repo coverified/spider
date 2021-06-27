@@ -30,11 +30,6 @@ object Main extends LazyLogging {
           .foreach { source =>
             system ! Supervisor.Start(source)
           }
-//        system ! Supervisor.Start(new URL("https://www.coverified.info/"))
-//        system ! Supervisor.Start(new URL("https://paintl.dev.schliflo.de/"))
-//        system ! Supervisor.Start(new URL("https://ie3.tu-dortmund.de/"))
-//        system ! Supervisor.Start(new URL("https://www.tu-dortmund.de/"))
-//        system ! Supervisor.Start(new URL("https://www.bundesregierung.de"))
     }
 
   }
