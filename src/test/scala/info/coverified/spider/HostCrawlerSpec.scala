@@ -7,19 +7,18 @@ package info.coverified.spider
 
 import akka.actor.testkit.typed.Effect.{Spawned, TimerScheduled}
 import akka.actor.testkit.typed.scaladsl.BehaviorTestKit
-import info.coverified.graphql.schema.AllUrlSource.AllUrlSourceView
+import info.coverified.graphql.schema.CoVerifiedClientSchema.Source.SourceView
 import sttp.model.Uri
 
 import java.net.URL
 
 class HostCrawlerSpec extends ActorSpec {
 
-  private val source = AllUrlSourceView(
+  private val source = SourceView(
     "-1",
     Some("www.example.com"),
     None,
-    "http://www.example.com",
-    List.empty
+    Some("http://www.example.com")
   )
 
   private val mockApiUrl = Uri("www.noapi.com")

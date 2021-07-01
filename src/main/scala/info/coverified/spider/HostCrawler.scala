@@ -8,7 +8,7 @@ package info.coverified.spider
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, Routers}
 import akka.actor.typed.{ActorRef, Behavior}
 import com.typesafe.scalalogging.LazyLogging
-import info.coverified.graphql.schema.AllUrlSource.AllUrlSourceView
+import info.coverified.graphql.schema.CoVerifiedClientSchema.Source.SourceView
 import info.coverified.spider.Indexer.IndexerEvent
 import info.coverified.spider.SiteScraper.SiteScraperEvent
 import info.coverified.spider.Supervisor.SupervisorEvent
@@ -39,7 +39,7 @@ object HostCrawler extends LazyLogging {
   )
 
   def apply(
-      source: AllUrlSourceView,
+      source: SourceView,
       noOfSiteScraper: Int,
       scrapeInterval: FiniteDuration,
       scrapeTimeout: FiniteDuration,
@@ -51,25 +51,32 @@ object HostCrawler extends LazyLogging {
       Behaviors.withTimers { timer =>
         // self timer to trigger scraping process with delay
         timer.startTimerAtFixedRate(Process, scrapeInterval)
-
-        val host = new URL(source.url).getHost
-        val indexer = ctx.spawn(
-          Indexer(supervisor, source, apiUrl, authSecret),
-          s"Indexer_$host"
-        )
-        val pool = Routers
-          .pool(noOfSiteScraper) {
-            SiteScraper(indexer, scrapeTimeout)
-          }
-          .withRoundRobinRouting()
-        idle(
-          HostCrawlerData(
-            noOfSiteScraper,
-            indexer,
-            supervisor,
-            ctx.spawn(pool, "SiteScraper-pool")
-          )
-        )
+        source.url match {
+          case Some(urlString) =>
+            val host = new URL(urlString).getHost
+            val indexer = ctx.spawn(
+              Indexer(supervisor, source, apiUrl, authSecret),
+              s"Indexer_$host"
+            )
+            val pool = Routers
+              .pool(noOfSiteScraper) {
+                SiteScraper(indexer, scrapeTimeout)
+              }
+              .withRoundRobinRouting()
+            idle(
+              HostCrawlerData(
+                noOfSiteScraper,
+                indexer,
+                supervisor,
+                ctx.spawn(pool, "SiteScraper-pool")
+              )
+            )
+          case None =>
+            logger.warn(
+              s"Empty urlString in source: $source. Cannot start corresponding host crawler!"
+            )
+            Behaviors.stopped
+        }
       }
     }
   }

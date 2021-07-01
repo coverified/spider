@@ -8,10 +8,9 @@ package info.coverified.spider.util
 import caliban.client.Operations.{RootMutation, RootQuery}
 import caliban.client.{CalibanClientError, SelectionBuilder}
 import com.typesafe.scalalogging.LazyLogging
-import info.coverified.graphql.schema.AllUrlSource.AllUrlSourceView
+import info.coverified.graphql.schema.CoVerifiedClientSchema.Source.SourceView
+import info.coverified.graphql.schema.CoVerifiedClientSchema.Url.UrlView
 import info.coverified.graphql.schema.CoVerifiedClientSchema._
-import info.coverified.graphql.schema.SimpleUrl.SimpleUrlView
-import info.coverified.graphql.schema.{AllUrlSource, SimpleUrl}
 import sttp.client3.Request
 import sttp.client3.asynchttpclient.zio.{
   AsyncHttpClientZioBackend,
@@ -24,16 +23,15 @@ import zio.{RIO, ZIO}
 object DBConnector extends LazyLogging {
 
   private def getAllSourcesRequest
-      : SelectionBuilder[RootQuery, Option[List[Option[AllUrlSourceView]]]] = {
-    Query.allSources()(
-      AllUrlSource.view
+      : SelectionBuilder[RootQuery, Option[List[Source.SourceView]]] =
+    Query.allSources(SourceWhereInput(), skip = 0)(
+      Source.view
     )
-  }
 
   def createUrlMutation(
-      source: AllUrlSourceView,
+      source: SourceView,
       url: String
-  ): SelectionBuilder[RootMutation, Option[SimpleUrlView]] = {
+  ): SelectionBuilder[RootMutation, Option[UrlView[SourceView]]] = {
     Mutation.createUrl(
       Some(
         UrlCreateInput(
@@ -41,15 +39,37 @@ object DBConnector extends LazyLogging {
           source = Some(
             SourceRelateToOneInput(
               connect = Some(
-                SourceWhereUniqueInput(source.id)
+                SourceWhereUniqueInput(Some(source.id))
               )
             )
           )
         )
       )
     )(
-      SimpleUrl.view
+      Url.view(
+        Source.view
+      )
     )
+  }
+
+  def getUrls(
+      url: String,
+      apiUrl: Uri,
+      authSecret: String
+  ): Option[UrlView[SourceView]] = {
+    sendRequest(
+      sendRequest(
+        Query
+          .allUrls(
+            UrlWhereInput(
+              name = Some(url)
+            ),
+            skip = 0
+          )(Url.view(Source.view))
+          .toRequest(apiUrl)
+          .header("x-coverified-internal-auth", authSecret)
+      )
+    ).flatMap(_.headOption)
   }
 
   /**
@@ -61,13 +81,13 @@ object DBConnector extends LazyLogging {
       apiUrl: Uri,
       authSecret: String
   ): ZIO[SttpClient, Throwable, Either[CalibanClientError, List[
-    AllUrlSourceView
+    SourceView
   ]]] = {
     sendRequest(
       getAllSourcesRequest
         .toRequest(apiUrl)
         .header("x-coverified-internal-auth", authSecret)
-    ).map(_.map(_.map(_.flatten).getOrElse(List.empty)))
+    ).map(_.map(_.getOrElse(List.empty)))
   }
 
   /**
@@ -78,13 +98,11 @@ object DBConnector extends LazyLogging {
     */
   def storeMutation(
       mutation: SelectionBuilder[RootMutation, Option[
-        SimpleUrlView
+        UrlView[SourceView]
       ]],
       apiUrl: Uri,
       authSecret: String
-  ): ZIO[SttpClient, Throwable, Either[CalibanClientError, Option[
-    SimpleUrlView
-  ]]] =
+  ): RIO[SttpClient, Either[CalibanClientError, Option[UrlView[SourceView]]]] =
     sendRequest(
       mutation
         .toRequest(apiUrl)
@@ -115,6 +133,6 @@ object DBConnector extends LazyLogging {
   private def sendRequest[A](
       req: Request[Either[CalibanClientError, A], Any]
   ): RIO[SttpClient, Either[CalibanClientError, A]] = {
-    send(req).map(_.body)
+    send(req).map(_.body) // todo error handling
   }
 }

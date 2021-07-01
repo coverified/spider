@@ -8,7 +8,7 @@ package info.coverified.spider
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import com.typesafe.scalalogging.LazyLogging
-import info.coverified.graphql.schema.AllUrlSource.AllUrlSourceView
+import info.coverified.graphql.schema.CoVerifiedClientSchema.Source.SourceView
 import info.coverified.spider.HostCrawler.HostCrawlerEvent
 import info.coverified.spider.main.Config
 
@@ -20,7 +20,7 @@ object Supervisor extends LazyLogging {
 
   sealed trait SupervisorEvent
 
-  final case class Start(source: AllUrlSourceView) extends SupervisorEvent
+  final case class Start(source: SourceView) extends SupervisorEvent
 
   final case class ScrapeFailure(url: URL, reason: Throwable)
       extends SupervisorEvent
@@ -33,7 +33,7 @@ object Supervisor extends LazyLogging {
   final case class SupervisorData(
       config: Config,
       startDate: Long = System.currentTimeMillis(),
-      host2Source: Map[String, AllUrlSourceView] = Map.empty,
+      host2Source: Map[String, SourceView] = Map.empty,
       host2Actor: Map[String, ActorRef[HostCrawlerEvent]] = Map.empty,
       scrapeCounts: Map[URL, Int] = Map.empty,
       currentlyScraping: Set[URL] = Set.empty
@@ -49,17 +49,25 @@ object Supervisor extends LazyLogging {
       case (actorContext, msg) =>
         msg match {
           case Start(source) =>
-            val url = new URL(source.url)
-            logger.info(s"Starting indexing for '${source.url}' ...")
-            idle(
-              scrape(
-                url,
-                actorContext,
-                data.copy(
-                  host2Source = data.host2Source + (url.getHost -> source)
+            source.url match {
+              case Some(urlString) =>
+                val url = new URL(urlString)
+                logger.info(s"Starting indexing for '${source.url}' ...")
+                idle(
+                  scrape(
+                    url,
+                    actorContext,
+                    data.copy(
+                      host2Source = data.host2Source + (url.getHost -> source)
+                    )
+                  )
                 )
-              )
-            )
+              case None =>
+                logger.warn(
+                  s"Empty urlString in source: $source. Cannot start indexing this one!"
+                )
+                Behaviors.same
+            }
           case ScrapeFailure(url, reason) =>
             idle(handleFailure(data, actorContext, url, reason))
           case IndexFinished(url, newUrls) =>

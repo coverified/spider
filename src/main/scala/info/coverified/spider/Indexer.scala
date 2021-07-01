@@ -8,7 +8,7 @@ package info.coverified.spider
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import com.typesafe.scalalogging.LazyLogging
-import info.coverified.graphql.schema.AllUrlSource.AllUrlSourceView
+import info.coverified.graphql.schema.CoVerifiedClientSchema.Source.SourceView
 import info.coverified.spider.SiteScraper.SiteContent
 import info.coverified.spider.Supervisor.SupervisorEvent
 import info.coverified.spider.util.DBConnector
@@ -26,7 +26,7 @@ object Indexer extends LazyLogging {
 
   def apply(
       supervisor: ActorRef[SupervisorEvent],
-      source: AllUrlSourceView,
+      source: SourceView,
       apiUrl: Uri,
       authSecret: String
   ): Behavior[IndexerEvent] =
@@ -34,7 +34,7 @@ object Indexer extends LazyLogging {
 
   private def idle(
       supervisor: ActorRef[SupervisorEvent],
-      source: AllUrlSourceView,
+      source: SourceView,
       apiUrl: Uri,
       authSecret: String
   ): Behavior[IndexerEvent] = Behaviors.receive[IndexerEvent] {
@@ -68,26 +68,30 @@ object Indexer extends LazyLogging {
     * @return [[Option]] onto an effect, that might be put to API
     */
   def handleUrl(
-      source: AllUrlSourceView,
+      source: SourceView,
       url: URL,
       apiUrl: Uri,
       authSecret: String
   ): Unit = {
     logger.info("Handling url: {}", url.toString)
-    if (!source.urls.contains(url.toString)) {
-      try {
-        DBConnector
-          .sendRequest(
-            DBConnector.storeMutation(
-              DBConnector.createUrlMutation(source, url.toString),
-              apiUrl,
-              authSecret
+
+    // check if source exists in db, otherwise persist
+    try {
+      DBConnector.getUrls(url.toString, apiUrl, authSecret) match {
+        case Some(_) => // do nothing
+        case None =>
+          DBConnector
+            .sendRequest(
+              DBConnector.storeMutation(
+                DBConnector.createUrlMutation(source, url.toString),
+                apiUrl,
+                authSecret
+              )
             )
-          )
-      } catch {
-        case e: Throwable =>
-          e.printStackTrace()
       }
+    } catch {
+      case e: Throwable =>
+        e.printStackTrace()
     }
   }
 

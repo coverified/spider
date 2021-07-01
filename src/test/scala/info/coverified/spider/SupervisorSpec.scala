@@ -7,7 +7,8 @@ package info.coverified.spider
 
 import akka.actor.testkit.typed.Effect.{ReceiveTimeoutSet, Spawned}
 import akka.actor.testkit.typed.scaladsl.BehaviorTestKit
-import info.coverified.graphql.schema.AllUrlSource.AllUrlSourceView
+
+import info.coverified.graphql.schema.CoVerifiedClientSchema.Source.SourceView
 import info.coverified.spider.HostCrawler.HostCrawlerEvent
 import info.coverified.spider.Supervisor.{
   IdleTimeout,
@@ -25,9 +26,9 @@ import scala.concurrent.duration.DurationInt
 class SupervisorSpec extends AnyWordSpec with Matchers {
 
   private val source1 =
-    AllUrlSourceView("1", None, None, "https://www.example1.com/", List.empty)
+    SourceView("1", None, None, Some("https://www.example1.com/"))
   private val source2 =
-    AllUrlSourceView("2", None, None, "https://www.example2.com/", List.empty)
+    SourceView("2", None, None, Some("https://www.example2.com/"))
 
   "Initialization of the Supervisor" should {
     "set up a receive timeout" in {
