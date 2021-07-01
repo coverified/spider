@@ -1,15 +1,15 @@
 task projectProperties {
-    doLast {
-        def name = project.name
-        def version = project.version.toString()
-        def mainClass = project.property("mainClass").toString()
-        def properties = """PROJECT_NAME=$name
+	doLast {
+		def name = project.name
+		def version = project.version.toString()
+		def mainClass = project.property("mainClass").toString()
+		def properties = """PROJECT_NAME=$name
           |PROJECT_VERSION=$version
           |MAIN_CLASS=$mainClass
           |""".stripMargin()
 
-        def file = new File("$buildDir/build.env")
-        file.write(properties)
-        println "Project properties have been saved in build.env!"
-    }
+		def file = new File("$buildDir/build.env")
+		file.write(properties)
+		println "Project properties have been saved in build.env!"
+	}
 }

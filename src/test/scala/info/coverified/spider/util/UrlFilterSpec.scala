@@ -19,6 +19,12 @@ class UrlFilterSpec extends should.Matchers with AnyWordSpecLike {
       ).foreach(UrlFilter.wantedUrl(_) shouldBe false)
     }
 
+    "identify form page urls as unwanted correctly" in {
+      Vector(
+        "https://www.bmvi.de/SiteGlobals/Forms/Listen/EN/News-From-The-Ministry/News-From-The-Ministry_Formular.html?nn=260752&queryResultId=null&pageNo=0&gtp=14468_liste%3D55%26212490_list%3D44#servicenav"
+      ).foreach(UrlFilter.wantedUrl(_) shouldBe false)
+    }
+
     "identify valid urls as wanted correctly" in {
       Vector(
         "https://www.example.de/de/themen/222/123",

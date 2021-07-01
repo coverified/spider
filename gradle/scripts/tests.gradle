@@ -1,9 +1,15 @@
 //run scala tests. These are not automatically picked up by gradle,
 //so we run them like this.
 task scalatest(dependsOn: ['testClasses'], type: JavaExec) {
-    main = 'org.scalatest.tools.Runner'
-    args = ['-R', 'build/classes/scala/test', '-o', '-u', 'build/reports/tests/xml']
-    classpath = sourceSets.test.runtimeClasspath
+	main = 'org.scalatest.tools.Runner'
+	args = [
+		'-R',
+		'build/classes/scala/test',
+		'-o',
+		'-u',
+		'build/reports/tests/xml'
+	]
+	classpath = sourceSets.test.runtimeClasspath
 }
 
 test.dependsOn(scalatest)
