@@ -62,6 +62,8 @@ dependencies {
 	// cmd args parser //
 	implementation "com.github.scopt:scopt_${scalaVersion}:4.0.0"
 
+	implementation 'io.lemonlabs:scala-uri_2.13:3.5.0'
+
 	// CORE Scala //
 	implementation "org.scala-lang:scala-library:${scalaBinaryVersion}"
 	implementation "org.scala-lang.modules:scala-parallel-collections_${scalaVersion}: 1.0.2"

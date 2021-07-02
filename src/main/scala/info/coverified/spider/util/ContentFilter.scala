@@ -6,6 +6,7 @@
 package info.coverified.spider.util
 
 import info.coverified.spider.SiteScraper.SiteContent
+import info.coverified.spider.util.UrlCleaner.cleanUrl
 import info.coverified.spider.util.UrlFilter.wantedUrl
 import org.jsoup.Connection.Response
 import org.apache.commons.validator.routines.UrlValidator
@@ -43,7 +44,11 @@ object ContentFilter {
       val hRefLang: mutable.Seq[String] = extractHRefLang(doc)
 
       val newUrls =
-        (links ++ cLinks ++ hRefLang).filter(wantedUrl).map(new URL(_)).toSet
+        (links ++ cLinks ++ hRefLang)
+          .filter(wantedUrl)
+          .map(cleanUrl)
+          .map(new URL(_))
+          .toSet
 
       Some(SiteContent(newUrls))
     } else {
