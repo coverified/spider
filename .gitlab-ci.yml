@@ -9,6 +9,11 @@ variables:
   DOCKER_HOST: tcp://docker:2376
   DOCKER_TLS_CERTDIR: "/certs"
   CONTAINER_IMAGE: $CI_REGISTRY_IMAGE:latest
+  GRADLE_USER_HOME: "$CI_PROJECT_DIR/.cache/.gradle"
+
+cache:
+  paths:
+    - .cache/.gradle
 
 build:
   stage: build
@@ -47,6 +52,7 @@ containerize:
     - build
   only:
     - main
+  cache: {}
 
 # TODO: deployment
 #deploy:
