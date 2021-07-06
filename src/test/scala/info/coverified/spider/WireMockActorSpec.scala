@@ -33,6 +33,7 @@ trait WireMockActorSpec
   }
 
   override def afterAll(): Unit = {
+    // this can get called too early, maybe when tests are executed in parallel?
     wireMockServer.stop()
     super.afterAll()
   }

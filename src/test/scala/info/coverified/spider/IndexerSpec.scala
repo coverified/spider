@@ -7,6 +7,7 @@ package info.coverified.spider
 
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.{
+  containing,
   postRequestedFor,
   status,
   urlEqualTo
@@ -28,100 +29,148 @@ class IndexerSpec extends WireMockActorSpec {
 
   "Index message received by Indexer" should {
 
-    // todo
-//    "result in appropriate IndexFinished being sent to Supervisor if url already exists" in {
-//      val source =
-//        SourceView(
-//          "2",
-//          None,
-//          None,
-//          Some("http://www.example1.com")
-//        )
-//
-//      val supervisor = testKit.createTestProbe[Supervisor.SupervisorEvent](
-//        "Supervisor"
-//      )
-//
-//      val apiUrl = Uri.unsafeParse(s"http://127.0.0.1:$port/api")
-//
-//      val indexer = testKit.spawn(
-//        Indexer(supervisor.ref, source, apiUrl, mockAuthSecret)
-//      )
-//
-//      val crawledUrl = new URL("http://www.example1.com")
-//      val newLinks = Set(
-//        new URL("http://www.example1.com/page1"),
-//        new URL("http://www.example2.com/index.php")
-//      )
-//
-//      indexer ! Indexer.Index(crawledUrl, SiteContent(newLinks))
-//
-//      supervisor.expectMessage(
-//        IndexFinished(crawledUrl, newLinks)
-//      )
-//
-//      // no request sent
-//      wireMockServer.verify(
-//        WireMock.exactly(0),
-//        postRequestedFor(urlEqualTo("/api"))
-//      )
-//    }
-    // todo
-//    "result in url being inserted into db and appropriate IndexFinished being sent to Supervisor if url not existing yet" in {
-//      val source =
-//        SourceView("2", None, None, Some("http://www.example1.com"))
-//
-//      wireMockServer.stubFor(
-//        WireMock
-//          .post("/api")
-//          .willReturn(
-//            status(200)
-//              .withHeader("Content-Type", "application/json")
-//              .withBody("""|{
-//                   |  "data": {
-//                   |    "createUrl": {
-//                   |      "id": "0",
-//                   |      "name": "http://www.example1.com",
-//                   |      "source": {
-//                   |        "id": "2"
-//                   |      }
-//                   |    }
-//                   |  }
-//                   |}
-//                   |""".stripMargin)
-//          )
-//      )
-//
-//      val supervisor = testKit.createTestProbe[Supervisor.SupervisorEvent](
-//        "Supervisor"
-//      )
-//
-//      val apiUrl = Uri.unsafeParse(s"http://127.0.0.1:$port/api")
-//
-//      val indexer = testKit.spawn(
-//        Indexer(supervisor.ref, source, apiUrl, mockAuthSecret)
-//      )
-//
-//      val crawledUrl = new URL("http://www.example1.com")
-//      val newLinks = Set(
-//        new URL("http://www.example1.com/page1"),
-//        new URL("http://www.example2.com/index.php")
-//      )
-//
-//      indexer ! Indexer.Index(crawledUrl, SiteContent(newLinks))
-//
-//      supervisor.expectMessage(
-//        6.seconds,
-//        IndexFinished(crawledUrl, newLinks)
-//      )
-//
-//      // we just verify that the url was called, not the contents of the request.
-//      // checking the content would also be possible by adding withRequestBody()
-//      wireMockServer.verify(
-//        WireMock.exactly(1),
-//        postRequestedFor(urlEqualTo("/api"))
-//      )
-//    }
+    "result in appropriate IndexFinished being sent to Supervisor if url already exists" in {
+      val source =
+        SourceView(
+          "2",
+          None,
+          None,
+          Some("http://www.example1.com")
+        )
+
+      wireMockServer.stubFor(
+        WireMock
+          .post("/api")
+          .withRequestBody(containing("query{allUrls"))
+          .willReturn(
+            status(200)
+              .withHeader("Content-Type", "application/json")
+              .withBody("""|{
+                           |  "data": {
+                           |    "allUrls": [
+                           |      {
+                           |        "id": "0",
+                           |        "name": "http://www.example1.com",
+                           |        "source": null,
+                           |        "lastCrawl": null
+                           |      }
+                           |    ]
+                           |  }
+                           |}
+                           |""".stripMargin)
+          )
+      )
+
+      val supervisor = testKit.createTestProbe[Supervisor.SupervisorEvent](
+        "Supervisor"
+      )
+
+      val apiUrl = Uri.unsafeParse(s"http://127.0.0.1:$port/api")
+
+      val indexer = testKit.spawn(
+        Indexer(supervisor.ref, source, apiUrl, mockAuthSecret)
+      )
+
+      val crawledUrl = new URL("http://www.example1.com")
+      val newLinks = Set(
+        new URL("http://www.example1.com/page1"),
+        new URL("http://www.example2.com/index.php")
+      )
+
+      indexer ! Indexer.Index(crawledUrl, SiteContent(newLinks))
+
+      supervisor.expectMessage(
+        10.seconds,
+        IndexFinished(crawledUrl, newLinks)
+      )
+
+      wireMockServer.verify(
+        WireMock.exactly(1),
+        postRequestedFor(urlEqualTo("/api"))
+          .withRequestBody(containing("query{allUrls"))
+      )
+      wireMockServer.verify(
+        WireMock.exactly(0),
+        postRequestedFor(urlEqualTo("/api"))
+          .withRequestBody(containing("mutation{createUrl"))
+      )
+    }
+
+    "result in url being inserted into db and appropriate IndexFinished being sent to Supervisor if url not existing yet" in {
+      val source =
+        SourceView("2", None, None, Some("http://www.example1.com"))
+
+      wireMockServer.stubFor(
+        WireMock
+          .post("/api")
+          .withRequestBody(containing("query{allUrls"))
+          .willReturn(
+            status(200)
+              .withHeader("Content-Type", "application/json")
+              .withBody("""|{
+                           |  "data": {
+                           |    "allUrls": []
+                           |  }
+                           |}
+                           |""".stripMargin)
+          )
+      )
+
+      wireMockServer.stubFor(
+        WireMock
+          .post("/api")
+          .withRequestBody(containing("mutation{createUrl"))
+          .willReturn(
+            status(200)
+              .withHeader("Content-Type", "application/json")
+              .withBody("""|{
+                   |  "data": {
+                   |    "createUrl": {
+                   |      "id": "0",
+                   |      "name": "http://www.example1.com",
+                   |      "source": null,
+                          "lastCrawl": null
+                   |    }
+                   |  }
+                   |}
+                   |""".stripMargin)
+          )
+      )
+
+      val supervisor = testKit.createTestProbe[Supervisor.SupervisorEvent](
+        "Supervisor"
+      )
+
+      val apiUrl = Uri.unsafeParse(s"http://127.0.0.1:$port/api")
+
+      val indexer = testKit.spawn(
+        Indexer(supervisor.ref, source, apiUrl, mockAuthSecret)
+      )
+
+      val crawledUrl = new URL("http://www.example1.com")
+      val newLinks = Set(
+        new URL("http://www.example1.com/page1"),
+        new URL("http://www.example2.com/index.php")
+      )
+
+      indexer ! Indexer.Index(crawledUrl, SiteContent(newLinks))
+
+      supervisor.expectMessage(
+        10.seconds,
+        IndexFinished(crawledUrl, newLinks)
+      )
+
+      wireMockServer.verify(
+        WireMock.exactly(1),
+        postRequestedFor(urlEqualTo("/api"))
+          .withRequestBody(containing("query{allUrls"))
+      )
+      wireMockServer.verify(
+        WireMock.exactly(1),
+        postRequestedFor(urlEqualTo("/api"))
+          .withRequestBody(containing("mutation{createUrl"))
+      )
+    }
   }
 
   "NoIndex message received by Indexer" should {

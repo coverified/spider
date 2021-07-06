@@ -75,7 +75,7 @@ object DBConnector extends LazyLogging {
   /**
     * Asking the Connector for all available urls + additional information within the data source
     *
-    * @return An effect, that evaluates to a list of [[SimpleUrlView]]s
+    * @return An effect, that evaluates to a list of [[UrlView]]s
     */
   def getAllSources(
       apiUrl: Uri,
