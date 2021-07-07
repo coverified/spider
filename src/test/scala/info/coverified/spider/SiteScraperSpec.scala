@@ -7,7 +7,12 @@ package info.coverified.spider
 
 import akka.actor.testkit.typed.scaladsl.BehaviorTestKit
 import com.github.tomakehurst.wiremock.client.WireMock
-import com.github.tomakehurst.wiremock.client.WireMock.status
+import com.github.tomakehurst.wiremock.client.WireMock.{
+  equalTo,
+  getRequestedFor,
+  status,
+  urlEqualTo
+}
 import info.coverified.spider.SiteScraper.SiteContent
 
 import java.net.{URL, UnknownHostException}
@@ -59,6 +64,13 @@ class SiteScraperSpec extends WireMockActorSpec {
         )
       )
       hostCrawler.expectNoMessage()
+
+      // testing if proper user agent has been set
+      wireMockServer.verify(
+        WireMock.exactly(1),
+        getRequestedFor(urlEqualTo("/page1"))
+          .withHeader("User-Agent", equalTo("CoVerifiedBot-Spider"))
+      )
     }
 
     "result in no indexation if status code is not ok" in {
