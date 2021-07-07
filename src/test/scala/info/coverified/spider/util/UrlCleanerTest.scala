@@ -27,11 +27,13 @@ class UrlCleanerTest extends should.Matchers with AnyWordSpecLike {
 
     "remove 'gtp' query params from urls correctly" in {
       val expectedResults = Vector(
-        "https://www.bmvi.de/SiteGlobals/Forms/Listen/EN/News-From-The-Ministry/News-From-The-Ministry_Formular.html?queryResultId=null&pageNo=0"
+        "https://www.bmvi.de/SiteGlobals/Forms/Listen/EN/News-From-The-Ministry/News-From-The-Ministry_Formular.html?queryResultId=null&pageNo=0",
+        "https://www.bmvi.de/DE/Themen/Digitales/mFund/Projekte/mfund-projekte.html"
       )
 
       Vector(
-        "https://www.bmvi.de/SiteGlobals/Forms/Listen/EN/News-From-The-Ministry/News-From-The-Ministry_Formular.html?queryResultId=null&pageNo=0&gtp=14468_liste%3D55%26212490_list%3D44"
+        "https://www.bmvi.de/SiteGlobals/Forms/Listen/EN/News-From-The-Ministry/News-From-The-Ministry_Formular.html?queryResultId=null&pageNo=0&gtp=14468_liste%3D55%26212490_list%3D44",
+        "https://www.bmvi.de/DE/Themen/Digitales/mFund/Projekte/mfund-projekte.html?gtp=325998_liste%253D3"
       ).map(UrlCleaner.cleanUrl)
         .zip(expectedResults)
         .foreach { case (res, exp) => res shouldBe exp }
@@ -40,11 +42,15 @@ class UrlCleanerTest extends should.Matchers with AnyWordSpecLike {
 
     "remove trailing # anchors from urls correctly " in {
       val expectedResults = Vector(
-        "https://www.bmvi.de/SiteGlobals/Forms/Listen/EN/News-From-The-Ministry/News-From-The-Ministry_Formular.html?queryResultId=null&pageNo=0"
+        "https://www.bmvi.de/SiteGlobals/Forms/Listen/EN/News-From-The-Ministry/News-From-The-Ministry_Formular.html?queryResultId=null&pageNo=0",
+        "https://www.bmvi.de/DE/Home/home.html",
+        "https://www.bmvi.de/SharedDocs/DE/Artikel/LF/drohnen.html"
       )
 
       Vector(
-        "https://www.bmvi.de/SiteGlobals/Forms/Listen/EN/News-From-The-Ministry/News-From-The-Ministry_Formular.html?queryResultId=null&pageNo=0#servicenav"
+        "https://www.bmvi.de/SiteGlobals/Forms/Listen/EN/News-From-The-Ministry/News-From-The-Ministry_Formular.html?queryResultId=null&pageNo=0#servicenav",
+        "https://www.bmvi.de/DE/Home/home.html#main",
+        "https://www.bmvi.de/SharedDocs/DE/Artikel/LF/drohnen.html?nn=12830#servicenav"
       ).map(UrlCleaner.cleanUrl)
         .zip(expectedResults)
         .foreach { case (res, exp) => res shouldBe exp }
@@ -54,11 +60,13 @@ class UrlCleanerTest extends should.Matchers with AnyWordSpecLike {
       test(
         input = Vector(
           "https://www.bmvi.de/SharedDocs/DE/Bilder/Pressefotos/Wasser/scheuer-uferpromenade.jpg?__blob=normal&imgdownload=true",
-          "https://www.bmvi.de/SharedDocs/DE/Bilder/Pressefotos/Wasser/scheuer-uferpromenade.jpg?__blob=normal&download=true"
+          "https://www.bmvi.de/SharedDocs/DE/Bilder/Pressefotos/Wasser/scheuer-uferpromenade.jpg?__blob=normal&download=true",
+          "https://www.bundesregierung.de/resource/blob/974430/1836290/78199806b8e92fd9c3eae406a741c886/2021-01-14-bkm-neustartpdf-data.pdf?download=1"
         ),
         expectedResults = Vector(
           "https://www.bmvi.de/SharedDocs/DE/Bilder/Pressefotos/Wasser/scheuer-uferpromenade.jpg?__blob=normal",
-          "https://www.bmvi.de/SharedDocs/DE/Bilder/Pressefotos/Wasser/scheuer-uferpromenade.jpg?__blob=normal"
+          "https://www.bmvi.de/SharedDocs/DE/Bilder/Pressefotos/Wasser/scheuer-uferpromenade.jpg?__blob=normal",
+          "https://www.bundesregierung.de/resource/blob/974430/1836290/78199806b8e92fd9c3eae406a741c886/2021-01-14-bkm-neustartpdf-data.pdf"
         )
       )
 
