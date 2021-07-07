@@ -9,7 +9,8 @@ import io.lemonlabs.uri.Url
 
 object UrlCleaner {
 
-  private val unwantedQueryParams = Vector("nn", "gtp")
+  private val unwantedQueryParams =
+    Vector("nn", "gtp", "imgdownload", "download")
 
   def cleanUrl(url: String): String = clean(Url.parse(url)).toStringPunycode
 

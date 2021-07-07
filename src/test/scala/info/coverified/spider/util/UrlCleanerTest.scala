@@ -50,5 +50,28 @@ class UrlCleanerTest extends should.Matchers with AnyWordSpecLike {
         .foreach { case (res, exp) => res shouldBe exp }
     }
 
+    "remove '&imgdownload' and '&download' from urls correctly" in {
+      test(
+        input = Vector(
+          "https://www.bmvi.de/SharedDocs/DE/Bilder/Pressefotos/Wasser/scheuer-uferpromenade.jpg?__blob=normal&imgdownload=true",
+          "https://www.bmvi.de/SharedDocs/DE/Bilder/Pressefotos/Wasser/scheuer-uferpromenade.jpg?__blob=normal&download=true"
+        ),
+        expectedResults = Vector(
+          "https://www.bmvi.de/SharedDocs/DE/Bilder/Pressefotos/Wasser/scheuer-uferpromenade.jpg?__blob=normal",
+          "https://www.bmvi.de/SharedDocs/DE/Bilder/Pressefotos/Wasser/scheuer-uferpromenade.jpg?__blob=normal"
+        )
+      )
+
+    }
   }
+
+  private def test(
+      input: Vector[String],
+      expectedResults: Vector[String]
+  ): Unit =
+    input
+      .map(UrlCleaner.cleanUrl)
+      .zip(expectedResults)
+      .foreach { case (res, exp) => res shouldBe exp }
+
 }
