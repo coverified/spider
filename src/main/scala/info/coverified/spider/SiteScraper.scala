@@ -11,7 +11,6 @@ import com.typesafe.scalalogging.LazyLogging
 import info.coverified.spider.HostCrawler.HostCrawlerEvent
 import info.coverified.spider.Indexer.IndexerEvent
 import info.coverified.spider.util.CoVerifiedSpiderFilter.RichResponse
-import info.coverified.spider.util.UserAgentProvider
 import org.jsoup.{HttpStatusException, Jsoup, UnsupportedMimeTypeException}
 
 import java.io.IOException
@@ -20,6 +19,8 @@ import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Success, Try}
 
 object SiteScraper extends LazyLogging {
+
+  private val USER_AGENT = "CoVerifiedBot-Spider"
 
   sealed trait SiteScraperEvent
 
@@ -75,7 +76,7 @@ object SiteScraper extends LazyLogging {
         .timeout(timeout.toMillis.toInt)
         .followRedirects(true)
         .ignoreContentType(true)
-        .userAgent(UserAgentProvider.latestWindowsChrome)
+        .userAgent(USER_AGENT)
         .execute()
         .withCoVerifiedHeaderFilter
         .flatMap(_.asFilteredSiteContent) match {
