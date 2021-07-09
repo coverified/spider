@@ -71,6 +71,17 @@ class UrlCleanerTest extends should.Matchers with AnyWordSpecLike {
       )
 
     }
+
+    "removes ';jsessionid=B76B148565D3F794C5E8CD3E97BBB15A.delivery1-replication' from urls correctly" in {
+      test(
+        input = Vector(
+          "https://www.bmas.de/SharedDocs/Downloads/DE/Arbeitsschutz/arbeitsschutzbehorden.pdf;jsessionid=B76B148565D3F794C5E8CD3E97BBB15A.delivery1-replication?__blob=publicationFile&v=1"
+        ),
+        expectedResults = Vector(
+          "https://www.bmas.de/SharedDocs/Downloads/DE/Arbeitsschutz/arbeitsschutzbehorden.pdf?__blob=publicationFile&v=1"
+        )
+      )
+    }
   }
 
   private def test(
