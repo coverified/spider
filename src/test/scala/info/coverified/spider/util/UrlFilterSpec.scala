@@ -31,5 +31,13 @@ class UrlFilterSpec extends should.Matchers with AnyWordSpecLike {
         "https://coverified.info"
       ).foreach(UrlFilter.wantedUrl(_) shouldBe true)
     }
+
+    "identify show=image urls as unwanted correctly" in {
+      Vector(
+        "https://www.bpb.de/geschichte/deutsche-einheit/30-jahre-deutsche-einheit/314688/30-jahre-deutsche-einheit-bildergalerie?show=image&i=314693",
+        "https://www.bpb.de/geschichte/deutsche-einheit/30-jahre-deutsche-einheit/314688/30-jahre-deutsche-einheit-bildergalerie?show=image&i=314725",
+        "https://www.bpb.de/geschichte/deutsche-einheit/30-jahre-deutsche-einheit/314688/30-jahre-deutsche-einheit-bildergalerie?rel=noindex&type=galerie&show=image&i=314725"
+      ).foreach(UrlFilter.wantedUrl(_) shouldBe false)
+    }
   }
 }
