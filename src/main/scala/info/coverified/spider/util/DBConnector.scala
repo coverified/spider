@@ -114,7 +114,6 @@ object DBConnector extends LazyLogging {
   def sendRequest[T <: Throwable, A](
       request: ZIO[SttpClient, T, Either[T, A]]
   ): A =
-    try {
       zioRuntime.unsafeRun(
         request
           .provideCustomLayer(AsyncHttpClientZioBackend.layer())
@@ -128,7 +127,7 @@ object DBConnector extends LazyLogging {
         case Left(error) =>
           throw error
       }
-    }
+
 
   private def sendRequest[A](
       req: Request[Either[CalibanClientError, A], Any]
