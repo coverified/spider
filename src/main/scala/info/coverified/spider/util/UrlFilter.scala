@@ -11,7 +11,7 @@ object UrlFilter {
   def wantedUrl(url: String): Boolean =
     !isSearchResultPage(url) && !isForm(url) && !isImagePopup(url) && !isShoppingCard(
       url
-    )
+    ) && !isAddToCard(url)
 
   private def isSearchResultPage(url: String): Boolean =
     url.contains("!search?")
@@ -26,5 +26,8 @@ object UrlFilter {
 
   private def isShoppingCard(url: String): Boolean =
     url.matches(".*/warenkorb.*")
+
+  private def isAddToCard(url: String): Boolean =
+    url.matches(".*/addToCart.*")
 
 }

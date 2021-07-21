@@ -49,5 +49,14 @@ class UrlFilterSpec extends should.Matchers with AnyWordSpecLike {
         "https://www.bpb.de/shop/warenkorb/7720"
       ).foreach(UrlFilter.wantedUrl(_) shouldBe false)
     }
+
+    "identify '*/addToCart*' urls as unwanted correctly" in {
+      Vector(
+        "https://www.auswaertiges-amt.de/blueprint/servlet/aa-publication-order/addToCart?contentId=216862&shoppingCart=216654",
+        "https://www.bpb.de/shop/addToCart?",
+        "https://www.bpb.de/warenkorb/addToCart",
+        "https://www.bpb.de/addToCart/8"
+      ).foreach(UrlFilter.wantedUrl(_) shouldBe false)
+    }
   }
 }
