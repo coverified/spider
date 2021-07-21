@@ -36,7 +36,17 @@ class UrlFilterSpec extends should.Matchers with AnyWordSpecLike {
       Vector(
         "https://www.bpb.de/geschichte/deutsche-einheit/30-jahre-deutsche-einheit/314688/30-jahre-deutsche-einheit-bildergalerie?show=image&i=314693",
         "https://www.bpb.de/geschichte/deutsche-einheit/30-jahre-deutsche-einheit/314688/30-jahre-deutsche-einheit-bildergalerie?show=image&i=314725",
-        "https://www.bpb.de/geschichte/deutsche-einheit/30-jahre-deutsche-einheit/314688/30-jahre-deutsche-einheit-bildergalerie?rel=noindex&type=galerie&show=image&i=314725"
+        "https://www.bpb.de/geschichte/deutsche-einheit/30-jahre-deutsche-einheit/314688/30-jahre-deutsche-einheit-bildergalerie?rel=noindex&type=galerie&show=image&i=314725",
+        "https://www.bpb.de/gesellschaft/migration/afrikanische-diaspora/59569/brothers-keepers-story?type=galerie&show=image&i=59576"
+      ).foreach(UrlFilter.wantedUrl(_) shouldBe false)
+    }
+
+    "identify '*/warenkorb/*' urls as unwanted correctly" in {
+      Vector(
+        "https://www.bpb.de/shop/warenkorb/?addpub=7720",
+        "https://www.bpb.de/shop/warenkorb",
+        "https://www.bpb.de/warenkorb/",
+        "https://www.bpb.de/shop/warenkorb/7720"
       ).foreach(UrlFilter.wantedUrl(_) shouldBe false)
     }
   }

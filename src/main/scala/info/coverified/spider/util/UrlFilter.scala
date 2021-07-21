@@ -9,7 +9,9 @@ object UrlFilter {
 
   // note: not valid url check executed!
   def wantedUrl(url: String): Boolean =
-    !isSearchResultPage(url) && !isForm(url) && !isImagePopup(url)
+    !isSearchResultPage(url) && !isForm(url) && !isImagePopup(url) && !isShoppingCard(
+      url
+    )
 
   private def isSearchResultPage(url: String): Boolean =
     url.contains("!search?")
@@ -21,5 +23,8 @@ object UrlFilter {
     url.contains("?show=image") || url.contains("&show=image") || url.contains(
       "!show=image"
     )
+
+  private def isShoppingCard(url: String): Boolean =
+    url.matches(".*/warenkorb.*")
 
 }
