@@ -12,7 +12,7 @@ import scala.util.matching.Regex
 object UrlCleaner {
 
   private val unwantedQueryParams =
-    Vector("nn", "gtp", "imgdownload", "download")
+    Vector("nn", "gtp", "imgdownload", "download", "shoppingCart")
 
   private val regexFilter = Vector(";jsessionid=.*?(?=\\?)|;jsessionid=.*".r)
 

@@ -82,6 +82,17 @@ class UrlCleanerTest extends should.Matchers with AnyWordSpecLike {
         )
       )
     }
+
+    "removes '&shoppingCart' from urls correctly" in {
+      test(
+        input = Vector(
+          "https://www.auswaertiges-amt.de/blueprint/servlet/aa-publication-order/addToCart?contentId=216862&shoppingCart=216654"
+        ),
+        expectedResults = Vector(
+          "https://www.auswaertiges-amt.de/blueprint/servlet/aa-publication-order/addToCart?contentId=216862"
+        )
+      )
+    }
   }
 
   private def test(
