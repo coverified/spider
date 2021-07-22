@@ -27,7 +27,7 @@ object SiteScraper extends LazyLogging {
   final case class Scrape(url: URL, sender: ActorRef[HostCrawlerEvent])
       extends SiteScraperEvent
 
-  final case class SiteContent(links: Set[URL])
+  final case class SiteContent(canonicalUrl: Option[URL], links: Set[URL])
 
   def apply(
       indexer: ActorRef[IndexerEvent],
@@ -45,7 +45,8 @@ object SiteScraper extends LazyLogging {
 
       maybeContent match {
         case Success(Some(siteContent)) =>
-          indexer ! Indexer.Index(url, siteContent)
+          indexer ! Indexer
+            .Index(siteContent.canonicalUrl.getOrElse(url), siteContent)
         case Success(None) =>
           // nothing to index, but no failure
           // we need to report this to the indexer,
@@ -88,10 +89,10 @@ object SiteScraper extends LazyLogging {
     } catch {
       case _: UnsupportedMimeTypeException =>
         // unsupported mime types are not re-scheduled, but indexed
-        Success(Some(SiteContent(Set.empty)))
+        Success(Some(SiteContent(None, Set.empty)))
       case _: MalformedURLException =>
         // malformed urls are not re-scheduled, but indexed
-        Success(Some(SiteContent(Set.empty)))
+        Success(Some(SiteContent(None, Set.empty)))
       case ex: HttpStatusException if ex.getStatusCode != 200 =>
         // page not found is not re-scheduled and not indexed
         Success(None)

@@ -27,40 +27,27 @@ object ContentFilter {
     // by the header filter
     val contentType: String = response.contentType
     if (contentType.startsWith(txtHtml)) {
-      extractContentInformation(response.parse(), response.url)
+      extractContentInformation(response.parse())
     } else {
       // unsupported content is indexed, but does not contain any other urls
-      Some(SiteContent(Set.empty))
+      Some(SiteContent(None, Set.empty))
     }
   }
 
   private def extractContentInformation(
-      doc: Document,
-      url: URL
+      doc: Document
   ): Option[SiteContent] = {
-    if (addToIndex(doc, url)) {
-      val links: mutable.Seq[String] = extractAbsLinks(doc)
-      val cLinks: mutable.Seq[String] = extractCanonicalLinksFromBody(doc)
-      val hRefLang: mutable.Seq[String] = extractHRefLang(doc)
-
-      val newUrls =
-        (links ++ cLinks ++ hRefLang)
-          .filter(wantedUrl)
-          .map(cleanUrl)
-          .map(new URL(_))
-          .toSet
-
-      Some(SiteContent(newUrls))
-    } else {
-      None
-    }
-  }
-
-  private def addToIndex(doc: Document, url: URL): Boolean = {
-    // no canonical = true, canonical == url = true, canonical != url = false
-    canonicalLinkFromHead(doc).forall(
-      link => link.equals(url.toString) || link.equals(s"${url.toString}/")
-    )
+    val canonicalLink = canonicalLinkFromHead(doc)
+    val links: mutable.Seq[String] = extractAllHref(doc) ++ extractAbsLinks(doc)
+    val cLinks: mutable.Seq[String] = extractCanonicalLinksFromBody(doc)
+    val hRefLang: mutable.Seq[String] = extractHRefLang(doc)
+    val newUrls =
+      (links ++ cLinks ++ hRefLang)
+        .filter(wantedUrl)
+        .map(cleanUrl)
+        .map(new URL(_))
+        .toSet
+    Some(SiteContent(canonicalLink.map(new URL(_)), newUrls))
   }
 
   def extractAbsLinks(doc: Document): mutable.Buffer[String] =
@@ -69,6 +56,14 @@ object ContentFilter {
       .asScala
       .map(_.absUrl("href"))
       .filter(urlValidator.isValid)
+
+  def extractAllHref(doc: Document): mutable.Buffer[String] =
+    doc
+      .getElementsByAttribute("href")
+      .asScala
+      .map(_.absUrl("href"))
+      .filter(urlValidator.isValid)
+      .filter(_.endsWith(".html"))
 
   def extractHRefLang(doc: Document): mutable.Buffer[String] =
     doc

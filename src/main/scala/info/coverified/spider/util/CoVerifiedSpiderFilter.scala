@@ -17,7 +17,8 @@ object CoVerifiedSpiderFilter {
     def withCoVerifiedHeaderFilter: Option[Response] =
       Option.when(ResponseFilter.keep(response))(response)
 
-    def asFilteredSiteContent: Option[SiteContent] = contentFilter(response)
+    def asFilteredSiteContent: Option[SiteContent] =
+      contentFilter(response)
 
   }
 
