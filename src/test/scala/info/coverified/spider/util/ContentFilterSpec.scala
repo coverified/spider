@@ -58,6 +58,7 @@ class ContentFilterSpec
         new URL("https://example.com/cat0/index.html")
       )) shouldBe Some(
         SiteContent(
+          None,
           Set(
             new URL("https://example.com/page_en.html"),
             new URL("https://example.com/page_es.html"),

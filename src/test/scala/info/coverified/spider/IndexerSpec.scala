@@ -77,7 +77,7 @@ class IndexerSpec extends WireMockActorSpec {
         new URL("http://www.example2.com/index.php")
       )
 
-      indexer ! Indexer.Index(crawledUrl, SiteContent(newLinks))
+      indexer ! Indexer.Index(crawledUrl, SiteContent(None, newLinks))
 
       supervisor.expectMessage(
         10.seconds,
@@ -153,7 +153,7 @@ class IndexerSpec extends WireMockActorSpec {
         new URL("http://www.example2.com/index.php")
       )
 
-      indexer ! Indexer.Index(crawledUrl, SiteContent(newLinks))
+      indexer ! Indexer.Index(crawledUrl, SiteContent(None, newLinks))
 
       supervisor.expectMessage(
         10.seconds,
