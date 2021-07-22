@@ -8,16 +8,18 @@ package info.coverified.spider
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, Routers}
 import akka.actor.typed.{ActorRef, Behavior}
 import com.typesafe.scalalogging.LazyLogging
+import crawlercommons.robots.BaseRobotRules
 import info.coverified.graphql.schema.CoVerifiedClientSchema.Source.SourceView
 import info.coverified.spider.Indexer.IndexerEvent
 import info.coverified.spider.SiteScraper.SiteScraperEvent
 import info.coverified.spider.Supervisor.SupervisorEvent
-import info.coverified.spider.util.SitemapInspector
+import info.coverified.spider.util.{RobotsTxtInspector, SitemapInspector}
 import sttp.model.Uri
 
 import java.net.URL
 import scala.collection.parallel.immutable.ParVector
 import scala.concurrent.duration._
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.language.{existentials, postfixOps}
 
 object HostCrawler extends LazyLogging {
@@ -26,7 +28,8 @@ object HostCrawler extends LazyLogging {
 
   final case class Scrape(url: URL) extends HostCrawlerEvent
 
-  final case class QueueSitemap(url: URL) extends HostCrawlerEvent
+  final case class QueueSitemaps(baseUrl: URL, sitemapUrls: Vector[String])
+      extends HostCrawlerEvent
 
   final case object Process extends HostCrawlerEvent
 
@@ -38,6 +41,7 @@ object HostCrawler extends LazyLogging {
       indexer: ActorRef[IndexerEvent],
       supervisor: ActorRef[SupervisorEvent],
       siteScraper: ActorRef[SiteScraperEvent],
+      robotsCfg: BaseRobotRules,
       siteQueue: ParVector[URL] = ParVector.empty
   )
 
@@ -56,7 +60,8 @@ object HostCrawler extends LazyLogging {
         timer.startTimerAtFixedRate(Process, scrapeInterval)
         source.url match {
           case Some(urlString) =>
-            val host = new URL(urlString).getHost
+            val url = new URL(urlString)
+            val host = url.getHost
             val indexer = ctx.spawn(
               Indexer(supervisor, source, apiUrl, authSecret),
               s"Indexer_$host"
@@ -67,15 +72,22 @@ object HostCrawler extends LazyLogging {
               }
               .withRoundRobinRouting()
 
+            // configure robots txt
+            val robotsTxtCfg = RobotsTxtInspector.inspect(url)
+
             // we want to queue the sitemap if available
-            ctx.self ! QueueSitemap(new URL(urlString))
+            ctx.self ! QueueSitemaps(
+              url,
+              robotsTxtCfg.getSitemaps.asScala.toVector
+            )
 
             idle(
               HostCrawlerData(
                 noOfSiteScraper,
                 indexer,
                 supervisor,
-                ctx.spawn(pool, "SiteScraper-pool")
+                ctx.spawn(pool, "HostCrawler-pool"),
+                robotsTxtCfg
               )
             )
           case None =>
@@ -92,9 +104,10 @@ object HostCrawler extends LazyLogging {
     Behaviors.receive {
       case (ctx, msg) =>
         msg match {
-          case QueueSitemap(url) =>
-            logger.info(s"Inspecting and queuing sitemap of '$url'.")
-            val siteMapUrls = SitemapInspector.inspect(url)
+          case QueueSitemaps(baseUrl, sitemapUrls) =>
+            logger.info(s"Inspecting and queuing sitemap of '$baseUrl'.")
+            val siteMapUrls = (SitemapInspector.inspectFromHost(baseUrl) ++
+              SitemapInspector.inspectSitemaps(sitemapUrls)).toSet
             idle(
               data.copy(
                 siteQueue = data.siteQueue ++ siteMapUrls

@@ -20,7 +20,7 @@ import scala.util.{Failure, Success, Try}
 
 object SiteScraper extends LazyLogging {
 
-  private val USER_AGENT = "CoVerifiedBot-Spider"
+  val USER_AGENT = "CoVerifiedBot-Spider"
 
   sealed trait SiteScraperEvent
 
