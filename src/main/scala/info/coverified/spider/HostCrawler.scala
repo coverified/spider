@@ -108,17 +108,22 @@ object HostCrawler extends LazyLogging {
             logger.info(s"Inspecting and queuing sitemap of '$baseUrl'.")
             val siteMapUrls = (SitemapInspector.inspectFromHost(baseUrl) ++
               SitemapInspector.inspectSitemaps(sitemapUrls)).toSet
+              .filter(url => data.robotsCfg.isAllowed(url.toString))
             idle(
               data.copy(
                 siteQueue = data.siteQueue ++ siteMapUrls
               )
             )
           case Scrape(url) =>
-            logger.debug(s"Scheduled '$url' for scraping.")
-            idle(
+            val updatedData = if (data.robotsCfg.isAllowed(url.toString)) {
+              logger.debug(s"Scheduled '$url' for scraping.")
               data.copy(
                 siteQueue = data.siteQueue :+ url
               )
+            } else
+              data
+            idle(
+              updatedData
             )
           case Process =>
             process(data, ctx)
