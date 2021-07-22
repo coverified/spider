@@ -81,6 +81,9 @@ dependencies {
 	// url validator
 	implementation group: 'commons-validator', name: 'commons-validator', version: '1.7'
 
+	// https://mvnrepository.com/artifact/com.github.crawler-commons/crawler-commons
+	implementation group: 'com.github.crawler-commons', name: 'crawler-commons', version: '1.1'
+
 	// testing
 	testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.8"
 	testRuntimeClasspath 'com.vladsch.flexmark:flexmark-all:0.35.10'

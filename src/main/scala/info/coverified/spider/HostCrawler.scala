@@ -12,6 +12,7 @@ import info.coverified.graphql.schema.CoVerifiedClientSchema.Source.SourceView
 import info.coverified.spider.Indexer.IndexerEvent
 import info.coverified.spider.SiteScraper.SiteScraperEvent
 import info.coverified.spider.Supervisor.SupervisorEvent
+import info.coverified.spider.util.SitemapInspector
 import sttp.model.Uri
 
 import java.net.URL
@@ -24,6 +25,8 @@ object HostCrawler extends LazyLogging {
   sealed trait HostCrawlerEvent
 
   final case class Scrape(url: URL) extends HostCrawlerEvent
+
+  final case class QueueSitemap(url: URL) extends HostCrawlerEvent
 
   final case object Process extends HostCrawlerEvent
 
@@ -63,6 +66,10 @@ object HostCrawler extends LazyLogging {
                 SiteScraper(indexer, scrapeTimeout)
               }
               .withRoundRobinRouting()
+
+            // we want to queue the sitemap if available
+            ctx.self ! QueueSitemap(new URL(urlString))
+
             idle(
               HostCrawlerData(
                 noOfSiteScraper,
@@ -85,6 +92,14 @@ object HostCrawler extends LazyLogging {
     Behaviors.receive {
       case (ctx, msg) =>
         msg match {
+          case QueueSitemap(url) =>
+            logger.info(s"Inspecting and queuing sitemap of '$url'.")
+            val siteMapUrls = SitemapInspector.inspect(url)
+            idle(
+              data.copy(
+                siteQueue = data.siteQueue ++ siteMapUrls
+              )
+            )
           case Scrape(url) =>
             logger.debug(s"Scheduled '$url' for scraping.")
             idle(
