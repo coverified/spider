@@ -119,7 +119,7 @@ object DBConnector extends LazyLogging {
         .provideCustomLayer(AsyncHttpClientZioBackend.layer())
     ) match {
       case Right(response) =>
-        logger.debug(
+        logger.trace(
           "Response: {}",
           response
         )

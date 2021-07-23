@@ -42,9 +42,7 @@ object Indexer extends LazyLogging {
       msg match {
         case Index(url, content) =>
           // schedule new urls if any and write out/index the base url
-          logger.debug(s"Indexed '$url'")
           implicit val system: ActorSystem[Nothing] = ctx.system
-
           handleUrl(source, url, apiUrl, authSecret)
           //Source
           //  .single(url.toString + "\n")
@@ -73,13 +71,13 @@ object Indexer extends LazyLogging {
       apiUrl: Uri,
       authSecret: String
   ): Unit = {
-    logger.info("Indexing url: {}", url.toString)
-
     // check if source exists in db, otherwise persist
     try {
       DBConnector.getUrls(url.toString, apiUrl, authSecret) match {
-        case Some(_) => // do nothing
+        case Some(_) =>
+          logger.debug("'{}' is already indexed!", url.toString)
         case None =>
+          logger.info("Indexing url: {}", url.toString)
           DBConnector
             .sendRequest(
               DBConnector.storeMutation(

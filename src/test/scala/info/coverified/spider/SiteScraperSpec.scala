@@ -13,6 +13,8 @@ import com.github.tomakehurst.wiremock.client.WireMock.{
   status,
   urlEqualTo
 }
+import crawlercommons.robots.SimpleRobotRules
+import crawlercommons.robots.SimpleRobotRules.RobotRulesMode
 import info.coverified.spider.SiteScraper.SiteContent
 
 import java.net.{URL, UnknownHostException}
@@ -50,7 +52,8 @@ class SiteScraperSpec extends WireMockActorSpec {
         BehaviorTestKit(
           SiteScraper(
             indexer.ref,
-            defaultConfig.scrapeTimeout
+            defaultConfig.scrapeTimeout,
+            new SimpleRobotRules(RobotRulesMode.ALLOW_ALL)
           )
         )
 
@@ -94,7 +97,8 @@ class SiteScraperSpec extends WireMockActorSpec {
         BehaviorTestKit(
           SiteScraper(
             indexer.ref,
-            2.seconds
+            2.seconds,
+            new SimpleRobotRules(RobotRulesMode.ALLOW_ALL)
           )
         )
 
@@ -118,7 +122,8 @@ class SiteScraperSpec extends WireMockActorSpec {
         BehaviorTestKit(
           SiteScraper(
             indexer.ref,
-            1.second
+            1.second,
+            new SimpleRobotRules(RobotRulesMode.ALLOW_ALL)
           )
         )
 

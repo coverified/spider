@@ -69,11 +69,6 @@ object HostCrawler extends LazyLogging {
               Indexer(supervisor, source, apiUrl, authSecret),
               s"Indexer_$host"
             )
-            val pool = Routers
-              .pool(noOfSiteScraper) {
-                SiteScraper(indexer, scrapeTimeout)
-              }
-              .withRoundRobinRouting()
 
             // configure robots txt
             val robotsTxtCfg = RobotsTxtInspector.inspect(url) match {
@@ -86,6 +81,12 @@ object HostCrawler extends LazyLogging {
               case Success(robotsTxtCfg) =>
                 robotsTxtCfg
             }
+
+            val pool = Routers
+              .pool(noOfSiteScraper) {
+                SiteScraper(indexer, scrapeTimeout, robotsTxtCfg)
+              }
+              .withRoundRobinRouting()
 
             // we want to queue the sitemap if available
             ctx.self ! QueueSitemaps(
@@ -156,12 +157,19 @@ object HostCrawler extends LazyLogging {
   ): Behavior[HostCrawlerEvent] = {
     // take all site scraper available
     val processedUrls = data.siteQueue.take(data.noOfSiteScraper)
-    logger.info(
-      s"[${data.sourceUrl}] Scraping ${processedUrls.size} urls. ${data.siteQueue.size} left in queue."
-    )
     processedUrls.foreach { url =>
       data.siteScraper ! SiteScraper.Scrape(url, ctx.self)
     }
-    idle(data.copy(siteQueue = data.siteQueue.diff(processedUrls)))
+
+    val updatedData = if (processedUrls.nonEmpty) {
+      val updatedSiteQueue = data.siteQueue.diff(processedUrls)
+      logger.info(
+        s"[${data.sourceUrl}] Scraping ${processedUrls.size} urls. ${updatedSiteQueue.size} left in queue."
+      )
+      data.copy(siteQueue = updatedSiteQueue)
+    } else
+      data
+
+    idle(updatedData)
   }
 }

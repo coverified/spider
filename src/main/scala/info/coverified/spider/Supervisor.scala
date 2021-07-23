@@ -132,6 +132,9 @@ object Supervisor extends LazyLogging {
         .copy(currentlyScraping = updatedData.currentlyScraping - url)
     } else {
       logger.debug(s"No new links from $url. ")
+      logger.debug(
+        s"Currently waiting for ${data.currentlyScraping.size} urls scheduled for scraping."
+      )
       data.copy(currentlyScraping = data.currentlyScraping - url)
     }
   }
@@ -207,6 +210,16 @@ object Supervisor extends LazyLogging {
       )
       system.terminate()
     }
+    logger.info(
+      "Shutdown timeout received. But still waiting for answers from {} url scraping requests!",
+      data.currentlyScraping.size
+    )
+    logger.info(
+      "Awaiting data:\n{}",
+      data.currentlyScraping.groupBy(_.getHost).map {
+        case (host, urls) => host -> urls.size
+      }
+    )
     idle(data)
   }
 }

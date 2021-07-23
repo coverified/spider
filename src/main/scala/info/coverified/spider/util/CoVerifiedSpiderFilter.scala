@@ -5,9 +5,9 @@
 
 package info.coverified.spider.util
 
+import crawlercommons.robots.BaseRobotRules
 import info.coverified.spider.SiteScraper.SiteContent
 import info.coverified.spider.util.ContentFilter.contentFilter
-
 import org.jsoup.Connection.Response
 
 object CoVerifiedSpiderFilter {
@@ -17,8 +17,8 @@ object CoVerifiedSpiderFilter {
     def withCoVerifiedHeaderFilter: Option[Response] =
       Option.when(ResponseFilter.keep(response))(response)
 
-    def asFilteredSiteContent: Option[SiteContent] =
-      contentFilter(response)
+    def asFilteredSiteContent(robotsCfg: BaseRobotRules): Option[SiteContent] =
+      contentFilter(response, robotsCfg)
 
   }
 

@@ -6,12 +6,7 @@
 package info.coverified.spider.util
 
 import com.typesafe.scalalogging.LazyLogging
-import crawlercommons.sitemaps.{
-  SiteMap,
-  SiteMapIndex,
-  SiteMapParser,
-  SiteMapURL
-}
+import crawlercommons.sitemaps.{SiteMap, SiteMapIndex, SiteMapParser}
 import io.sentry.Sentry
 
 import java.net.URL

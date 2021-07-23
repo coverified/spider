@@ -8,6 +8,7 @@ package info.coverified.spider
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import com.typesafe.scalalogging.LazyLogging
+import crawlercommons.robots.BaseRobotRules
 import info.coverified.spider.HostCrawler.HostCrawlerEvent
 import info.coverified.spider.Indexer.IndexerEvent
 import info.coverified.spider.util.CoVerifiedSpiderFilter.RichResponse
@@ -31,18 +32,19 @@ object SiteScraper extends LazyLogging {
 
   def apply(
       indexer: ActorRef[IndexerEvent],
-      scrapeTimeout: FiniteDuration
+      scrapeTimeout: FiniteDuration,
+      robotsCfg: BaseRobotRules
   ): Behavior[SiteScraperEvent] =
-    idle(indexer, scrapeTimeout)
+    idle(indexer, scrapeTimeout, robotsCfg)
 
   private def idle(
       indexer: ActorRef[IndexerEvent],
-      timeout: FiniteDuration
+      timeout: FiniteDuration,
+      robotsCfg: BaseRobotRules
   ): Behavior[SiteScraperEvent] = Behaviors.receiveMessage {
     case Scrape(url, sender) =>
       logger.debug(s"Scraping '$url' ...")
-      val maybeContent = scrape(url, timeout)
-
+      val maybeContent = scrape(url, timeout, robotsCfg)
       maybeContent match {
         case Success(Some(siteContent)) =>
           indexer ! Indexer
@@ -63,12 +65,13 @@ object SiteScraper extends LazyLogging {
           )
       }
 
-      idle(indexer, timeout)
+      idle(indexer, timeout, robotsCfg)
   }
 
   private def scrape(
       url: URL,
-      timeout: FiniteDuration
+      timeout: FiniteDuration,
+      robotsCfg: BaseRobotRules
   ): Try[Option[SiteContent]] = {
     val link: String = url.toString
     try {
@@ -80,7 +83,7 @@ object SiteScraper extends LazyLogging {
         .userAgent(USER_AGENT)
         .execute()
         .withCoVerifiedHeaderFilter
-        .flatMap(_.asFilteredSiteContent) match {
+        .flatMap(_.asFilteredSiteContent(robotsCfg)) match {
         case siteContent @ Some(_) =>
           Success(siteContent)
         case None =>

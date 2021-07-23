@@ -5,6 +5,7 @@
 
 package info.coverified.spider.util
 
+import crawlercommons.robots.BaseRobotRules
 import info.coverified.spider.SiteScraper.SiteContent
 import info.coverified.spider.util.UrlCleaner.cleanUrl
 import info.coverified.spider.util.UrlFilter.wantedUrl
@@ -21,13 +22,16 @@ object ContentFilter {
   private val urlValidator = new UrlValidator()
   private val txtHtml = "text/html"
 
-  private[util] def contentFilter(response: Response): Option[SiteContent] = {
+  private[util] def contentFilter(
+      response: Response,
+      robotsCfg: BaseRobotRules
+  ): Option[SiteContent] = {
 
     // only index if header response has not been filtered
     // by the header filter
     val contentType: String = response.contentType
     if (contentType.startsWith(txtHtml)) {
-      extractContentInformation(response.parse())
+      extractContentInformation(response.parse(), robotsCfg)
     } else {
       // unsupported content is indexed, but does not contain any other urls
       Some(SiteContent(None, Set.empty))
@@ -35,7 +39,8 @@ object ContentFilter {
   }
 
   private def extractContentInformation(
-      doc: Document
+      doc: Document,
+      robotsCfg: BaseRobotRules
   ): Option[SiteContent] = {
     val canonicalLink = canonicalLinkFromHead(doc)
     val links: mutable.Seq[String] = extractAllHref(doc) ++ extractAbsLinks(doc)
@@ -43,6 +48,7 @@ object ContentFilter {
     val hRefLang: mutable.Seq[String] = extractHRefLang(doc)
     val newUrls =
       (links ++ cLinks ++ hRefLang)
+        .filter(url => robotsCfg.isAllowed(url))
         .filter(wantedUrl)
         .filterNot(canonicalLink.contains(_)) // if canonical link is available from head, do not include it in the set
         .map(cleanUrl)
