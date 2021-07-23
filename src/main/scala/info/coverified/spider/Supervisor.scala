@@ -31,6 +31,8 @@ object Supervisor extends LazyLogging {
 
   final case object IdleTimeout extends SupervisorEvent
 
+  final case class SitemapFinished(urls: Set[URL]) extends SupervisorEvent
+
   final case class SupervisorData(
       config: Config,
       startDate: Long = System.currentTimeMillis(),
@@ -71,6 +73,8 @@ object Supervisor extends LazyLogging {
             }
           case ScrapeFailure(url, reason) =>
             idle(handleFailure(data, actorContext, url, reason))
+          case SitemapFinished(urls) =>
+            idle(data.copy(currentlyScraping = data.currentlyScraping ++ urls))
           case IndexFinished(url, newUrls) =>
             idle(handleIndexFinished(data, actorContext, url, newUrls))
           case IdleTimeout =>

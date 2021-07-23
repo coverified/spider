@@ -13,7 +13,7 @@ import crawlercommons.robots.{BaseRobotRules, SimpleRobotRules}
 import info.coverified.graphql.schema.CoVerifiedClientSchema.Source.SourceView
 import info.coverified.spider.Indexer.IndexerEvent
 import info.coverified.spider.SiteScraper.SiteScraperEvent
-import info.coverified.spider.Supervisor.SupervisorEvent
+import info.coverified.spider.Supervisor.{SitemapFinished, SupervisorEvent}
 import info.coverified.spider.util.{RobotsTxtInspector, SitemapInspector}
 import sttp.model.Uri
 
@@ -125,6 +125,10 @@ object HostCrawler extends LazyLogging {
             val siteMapUrls = (SitemapInspector.inspectFromHost(baseUrl) ++
               SitemapInspector.inspectSitemaps(sitemapUrls)).toSet
               .filter(url => data.robotsCfg.isAllowed(url.toString))
+
+            // to avoid early shutdown, the supervisor needs to know about the urls
+            data.supervisor ! SitemapFinished(siteMapUrls)
+
             idle(
               data.copy(
                 siteQueue = data.siteQueue ++ siteMapUrls
