@@ -49,6 +49,10 @@ class SupervisorSpec extends AnyWordSpec with Matchers {
       hostCrawler1.childName shouldBe "Scraper_www.example1.com"
       val hostCrawlerInbox1 = testKit.childInbox(hostCrawler1.ref)
       hostCrawlerInbox1.expectMessage(
+        HostCrawler
+          .QueueSitemaps(new URL("https://www.example1.com/"), Vector.empty)
+      )
+      hostCrawlerInbox1.expectMessage(
         HostCrawler.Scrape(new URL("https://www.example1.com"))
       )
 
@@ -56,6 +60,10 @@ class SupervisorSpec extends AnyWordSpec with Matchers {
       val hostCrawler2 = testKit.expectEffectType[Spawned[HostCrawlerEvent]]
       hostCrawler2.childName shouldBe "Scraper_www.example2.com"
       val hostCrawlerInbox2 = testKit.childInbox(hostCrawler2.ref)
+      hostCrawlerInbox2.expectMessage(
+        HostCrawler
+          .QueueSitemaps(new URL("https://www.example2.com/"), Vector.empty)
+      )
       hostCrawlerInbox2.expectMessage(
         HostCrawler.Scrape(new URL("https://www.example2.com"))
       )
@@ -90,12 +98,20 @@ class SupervisorSpec extends AnyWordSpec with Matchers {
       val hostCrawler1 = testKit.expectEffectType[Spawned[HostCrawlerEvent]]
       val hostCrawlerInbox1 = testKit.childInbox(hostCrawler1.ref)
       hostCrawlerInbox1.expectMessage(
+        HostCrawler
+          .QueueSitemaps(new URL("https://www.example1.com/"), Vector.empty)
+      )
+      hostCrawlerInbox1.expectMessage(
         HostCrawler.Scrape(new URL("https://www.example1.com"))
       )
 
       testKit.run(Start(source2))
       val hostCrawler2 = testKit.expectEffectType[Spawned[HostCrawlerEvent]]
       val hostCrawlerInbox2 = testKit.childInbox(hostCrawler2.ref)
+      hostCrawlerInbox2.expectMessage(
+        HostCrawler
+          .QueueSitemaps(new URL("https://www.example2.com/"), Vector.empty)
+      )
       hostCrawlerInbox2.expectMessage(
         HostCrawler.Scrape(new URL("https://www.example2.com"))
       )
@@ -147,6 +163,10 @@ class SupervisorSpec extends AnyWordSpec with Matchers {
       testKit.run(Start(source1))
       val hostCrawler1 = testKit.expectEffectType[Spawned[HostCrawlerEvent]]
       val hostCrawlerInbox1 = testKit.childInbox(hostCrawler1.ref)
+      hostCrawlerInbox1.expectMessage(
+        HostCrawler
+          .QueueSitemaps(new URL("https://www.example1.com/"), Vector.empty)
+      )
       hostCrawlerInbox1.expectMessage(
         HostCrawler.Scrape(new URL("https://www.example1.com"))
       )

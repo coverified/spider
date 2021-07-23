@@ -83,13 +83,14 @@ object HostCrawler extends LazyLogging {
                 )
                 new SimpleRobotRules(RobotRulesMode.ALLOW_ALL)
               case Success(robotsTxtCfg) =>
-                // we want to queue the sitemap if available
-                ctx.self ! QueueSitemaps(
-                  url,
-                  robotsTxtCfg.getSitemaps.asScala.toVector
-                )
                 robotsTxtCfg
             }
+
+            // we want to queue the sitemap if available
+            ctx.self ! QueueSitemaps(
+              url,
+              robotsTxtCfg.getSitemaps.asScala.toVector
+            )
 
             idle(
               HostCrawlerData(
