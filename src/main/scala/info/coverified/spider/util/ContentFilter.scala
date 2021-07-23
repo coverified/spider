@@ -55,7 +55,12 @@ object ContentFilter {
         .map(new URL(_))
         .toSet
 
-    Some(SiteContent(canonicalLink.map(new URL(_)), newUrls))
+    Some(
+      SiteContent(
+        canonicalLink.filter(url => robotsCfg.isAllowed(url)).map(new URL(_)),
+        newUrls
+      )
+    )
   }
 
   def extractAbsLinks(doc: Document): mutable.Buffer[String] =
