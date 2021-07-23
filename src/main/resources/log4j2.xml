@@ -3,7 +3,8 @@
 <Configuration status="warn" packages="org.apache.logging.log4j.core,io.sentry.log4j2">
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
-            <PatternLayout pattern="%highlight{%d{HH:mm:ss.SSS} %-5level - %msg%n}{FATAL=red blink, ERROR=red, WARN=yellow bright, INFO=black, DEBUG=cyan, TRACE=blue}"/>
+            <PatternLayout
+                    pattern="%highlight{%d{HH:mm:ss.SSS} %-5level [%c] - %msg%n}{FATAL=red blink, ERROR=red, WARN=yellow bright, INFO=black, DEBUG=cyan, TRACE=blue}"/>
         </Console>
         <Sentry name="Sentry"
                 dsn="https://e9454ae0f44d4cc588959377b962928c@sentry.coverified.info/2"
@@ -16,7 +17,12 @@
             <AppenderRef ref="Console" level="debug"/>
             <AppenderRef ref="Sentry"/>
         </asyncRoot>
-
+        <logger name="io.netty" level="off">
+            <AppenderRef ref="Console"/>
+        </logger>
+        <logger name="org.asynchttpclient" level="off">
+            <AppenderRef ref="Console"/>
+        </logger>
     </Loggers>
 
 </Configuration>
