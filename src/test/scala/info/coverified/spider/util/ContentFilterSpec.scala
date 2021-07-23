@@ -5,6 +5,11 @@
 
 package info.coverified.spider.util
 
+import crawlercommons.robots.{
+  BaseRobotRules,
+  SimpleRobotRules,
+  SimpleRobotRulesParser
+}
 import info.coverified.spider.SiteScraper.SiteContent
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -20,7 +25,6 @@ class ContentFilterSpec
     with AnyWordSpecLike
     with PrivateMethodTester {
 
-  private val addToIndexMethod = PrivateMethod[Boolean](Symbol("addToIndex"))
   private val extractContentInformationMethod =
     PrivateMethod[Option[SiteContent]](Symbol("extractContentInformation"))
 
@@ -53,8 +57,10 @@ class ContentFilterSpec
 
       val doc: Document =
         Jsoup.parse(html, "https://example.com/cat0/index.html")
+      val robots = new SimpleRobotRules()
       (ContentFilter invokePrivate extractContentInformationMethod(
-        doc
+        doc,
+        robots
       )) shouldBe Some(
         SiteContent(
           Some(new URL("https://example.com/cat0/index.html")),
