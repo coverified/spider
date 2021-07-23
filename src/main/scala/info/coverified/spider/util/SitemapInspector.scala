@@ -7,7 +7,7 @@ package info.coverified.spider.util
 
 import com.typesafe.scalalogging.LazyLogging
 import crawlercommons.sitemaps.{SiteMap, SiteMapIndex, SiteMapParser}
-import io.sentry.Sentry
+import io.sentry.{Sentry, SentryLevel}
 
 import java.net.URL
 import scala.jdk.CollectionConverters.CollectionHasAsScala
@@ -30,12 +30,12 @@ object SitemapInspector extends LazyLogging {
       case _: SiteMapIndex =>
         val errorString = "Multiple nested sitemaps are not supported yet!"
         logger.error(errorString)
-        Sentry.captureMessage(errorString)
+        Sentry.captureMessage(errorString, SentryLevel.ERROR)
         Vector.empty
       case invalid =>
         val errorString = s"Invalid sitemap received: $invalid"
         logger.error(errorString)
-        Sentry.captureMessage(s"Invalid sitemap received: $invalid")
+        Sentry.captureMessage(errorString, SentryLevel.ERROR)
         Vector.empty
     }
 

@@ -48,7 +48,7 @@ object SiteScraper extends LazyLogging {
       maybeContent match {
         case Success(Some(siteContent)) =>
           indexer ! Indexer
-            .Index(siteContent.canonicalUrl.getOrElse(url), siteContent)
+            .Index(url, siteContent.canonicalUrl, siteContent)
         case Success(None) =>
           // nothing to index, but no failure
           // we need to report this to the indexer,

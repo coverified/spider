@@ -20,7 +20,11 @@ object Indexer extends LazyLogging {
 
   sealed trait IndexerEvent
 
-  final case class Index(url: URL, content: SiteContent) extends IndexerEvent
+  final case class Index(
+      url: URL,
+      canonicalUrl: Option[URL],
+      content: SiteContent
+  ) extends IndexerEvent
 
   final case class NoIndex(url: URL) extends IndexerEvent
 
@@ -40,10 +44,13 @@ object Indexer extends LazyLogging {
   ): Behavior[IndexerEvent] = Behaviors.receive[IndexerEvent] {
     case (ctx, msg) =>
       msg match {
-        case Index(url, content) =>
+        case Index(url, canonicalUrl, content) =>
           // schedule new urls if any and write out/index the base url
           implicit val system: ActorSystem[Nothing] = ctx.system
-          handleUrl(source, url, apiUrl, authSecret)
+
+          // always handle canonical url, if available and drop the other one
+          handleUrl(source, canonicalUrl.getOrElse(url), apiUrl, authSecret)
+
           //Source
           //  .single(url.toString + "\n")
           //  .map(t => ByteString(t))

@@ -63,6 +63,7 @@ class SiteScraperSpec extends WireMockActorSpec {
       indexer.expectMessage(
         Indexer.Index(
           pageUrl,
+          None,
           SiteContent(None, Set(new URL(s"http://127.0.0.1:$port/page2")))
         )
       )

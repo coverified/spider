@@ -11,6 +11,7 @@ import com.typesafe.scalalogging.LazyLogging
 import info.coverified.graphql.schema.CoVerifiedClientSchema.Source.SourceView
 import info.coverified.spider.HostCrawler.HostCrawlerEvent
 import info.coverified.spider.main.Config
+import io.sentry.{Sentry, SentryLevel}
 
 import scala.language.{existentials, postfixOps}
 import java.net.URL
@@ -117,6 +118,15 @@ object Supervisor extends LazyLogging {
       .map(clean)
       .filterNot(alreadyScraped(_, data))
       .filter(inNamespaces(_, data))
+
+    // sanity to ensure that we have sent out this url
+    if (!data.currentlyScraping.contains(url)) {
+      val msg =
+        s"Received indexing response for '$url' which hasn't been scheduled for indexing!"
+      logger.error(msg)
+      Sentry.captureMessage(msg, SentryLevel.ERROR)
+    }
+
     if (uniqueNewUrls.nonEmpty) {
       val updatedData = uniqueNewUrls
         .foldLeft(data)(
@@ -126,7 +136,7 @@ object Supervisor extends LazyLogging {
         s"Received ${newUrls.size} (new: ${uniqueNewUrls.size}) urls."
       )
       logger.debug(
-        s"Received ${newUrls.size} (new: ${uniqueNewUrls.size}) urls from '$url'."
+        s"Source url is '$url'."
       )
       updatedData
         .copy(currentlyScraping = updatedData.currentlyScraping - url)
@@ -209,24 +219,25 @@ object Supervisor extends LazyLogging {
         s"Duration: ${(System.currentTimeMillis() - data.config.shutdownTimeout.toMillis - data.startDate) / 1000}s"
       )
       system.terminate()
+    } else {
+      logger.info(
+        "Shutdown timeout received. But still waiting for answers from {} url scraping requests!",
+        data.currentlyScraping.size
+      )
+      logger.info(
+        "Awaiting data: {}",
+        data.currentlyScraping
+          .groupBy(_.getHost)
+          .map {
+            case (host, urls) => host -> urls.size
+          }
+          .mkString("\n")
+      )
+      logger.info(
+        "{}",
+        data.currentlyScraping.groupBy(_.getHost).mkString("\n")
+      )
     }
-    logger.info(
-      "Shutdown timeout received. But still waiting for answers from {} url scraping requests!",
-      data.currentlyScraping.size
-    )
-    logger.info(
-      "Awaiting data: {}",
-      data.currentlyScraping
-        .groupBy(_.getHost)
-        .map {
-          case (host, urls) => host -> urls.size
-        }
-        .mkString("\n")
-    )
-    logger.info(
-      "{}",
-      data.currentlyScraping.groupBy(_.getHost).mkString("\n")
-    )
     idle(data)
   }
 }

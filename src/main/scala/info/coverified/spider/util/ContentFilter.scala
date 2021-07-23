@@ -47,21 +47,35 @@ object ContentFilter {
     val cLinks: mutable.Seq[String] = extractCanonicalLinksFromBody(doc)
     val hRefLang: mutable.Seq[String] = extractHRefLang(doc)
     val newUrls =
-      (links ++ cLinks ++ hRefLang)
-        .filter(url => robotsCfg.isAllowed(url))
-        .filter(wantedUrl)
-        .filterNot(canonicalLink.contains(_)) // if canonical link is available from head, do not include it in the set
-        .map(cleanUrl)
-        .map(new URL(_))
-        .toSet
+      filterAndClean(links ++ cLinks ++ hRefLang, canonicalLink, robotsCfg)
 
     Some(
       SiteContent(
-        canonicalLink.filter(url => robotsCfg.isAllowed(url)).map(new URL(_)),
+        filterAndClean(canonicalLink, robotsCfg),
         newUrls
       )
     )
   }
+
+  private def filterAndClean(
+      links: mutable.Seq[String],
+      canonicalLink: Option[String],
+      robotsCfg: BaseRobotRules
+  ): Set[URL] =
+    links
+      .filterNot(canonicalLink.contains(_)) // if canonical link is available from head, do not include it in the set
+      .flatMap(url => filterAndClean(Some(url), robotsCfg))
+      .toSet
+
+  private def filterAndClean(
+      link: Option[String],
+      robotsCfg: BaseRobotRules
+  ): Option[URL] =
+    link
+      .filter(url => robotsCfg.isAllowed(url))
+      .filter(wantedUrl)
+      .map(cleanUrl)
+      .map(new URL(_))
 
   def extractAbsLinks(doc: Document): mutable.Buffer[String] =
     doc
