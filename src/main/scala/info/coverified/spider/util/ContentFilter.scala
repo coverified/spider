@@ -44,9 +44,11 @@ object ContentFilter {
     val newUrls =
       (links ++ cLinks ++ hRefLang)
         .filter(wantedUrl)
+        .filterNot(canonicalLink.contains(_)) // if canonical link is available from head, do not include it in the set
         .map(cleanUrl)
         .map(new URL(_))
         .toSet
+
     Some(SiteContent(canonicalLink.map(new URL(_)), newUrls))
   }
 

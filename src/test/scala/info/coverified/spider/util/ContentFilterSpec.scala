@@ -54,78 +54,19 @@ class ContentFilterSpec
       val doc: Document =
         Jsoup.parse(html, "https://example.com/cat0/index.html")
       (ContentFilter invokePrivate extractContentInformationMethod(
-        doc,
-        new URL("https://example.com/cat0/index.html")
+        doc
       )) shouldBe Some(
         SiteContent(
-          None,
+          Some(new URL("https://example.com/cat0/index.html")),
           Set(
-            new URL("https://example.com/page_en.html"),
-            new URL("https://example.com/page_es.html"),
-            new URL("https://example.com/abs.html"),
             new URL("https://example.com/cat0/same_level.html"),
-            new URL("https://example.com/page1.html"),
-            new URL("https://example.com/page2.html")
+            new URL("https://example.com/page_es.html"),
+            new URL("https://example.com/page_en.html"),
+            new URL("https://example.com/abs.html"),
+            new URL("https://example.com/page2.html"),
+            new URL("https://example.com/page1.html")
           )
         )
-      )
-    }
-
-    "not extract content information if url is not canonical link" in {
-      val html =
-        """<html>
-          |<head>
-          |    <link rel="alternate" hreflang="en" href="https://example.com/page_en.html">
-          |
-          |    <!-- canonical link -->
-          |    <link rel="canonical" href="https://example.com/different_link/index.html">
-          |</head>
-          |<body
-          |    <a href="https://example.com/page1.html">page1.html</a>
-          |</body>
-          |</html>""".stripMargin
-
-      val doc: Document =
-        Jsoup.parse(html, "https://example.com/cat0/index.html")
-      (ContentFilter invokePrivate extractContentInformationMethod(
-        doc,
-        new URL("https://example.com/cat0/index.html")
-      )) shouldBe None
-    }
-
-    "decide to add to index if url is canonical link" in {
-      val html =
-        """<html>
-          |<head>
-          |    <link rel="canonical" href="https://example.com/">
-          |</head>
-          |<body></body>
-          |</html>""".stripMargin
-
-      val doc: Document = Jsoup.parse(html)
-      assert(
-        ContentFilter invokePrivate addToIndexMethod(
-          doc,
-          new URL("https://example.com")
-        )
-      )
-    }
-
-    "decide to not add to index if url is not equal to canonical link" in {
-      val html =
-        """<html>
-          |<head>
-          |    <link rel="canonical" href="https://example.com/page1.php">
-          |</head>
-          |<body></body>
-          |</html>""".stripMargin
-
-      val doc: Document = Jsoup.parse(html)
-      assert(
-        !(ContentFilter invokePrivate addToIndexMethod(
-          doc,
-          new URL("https://example.com/page1.php?foo")
-        ))
       )
     }
 
