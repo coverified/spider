@@ -73,7 +73,7 @@ object Indexer extends LazyLogging {
       apiUrl: Uri,
       authSecret: String
   ): Unit = {
-    logger.info("Handling url: {}", url.toString)
+    logger.info("Indexing url: {}", url.toString)
 
     // check if source exists in db, otherwise persist
     try {

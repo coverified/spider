@@ -39,6 +39,7 @@ object HostCrawler extends LazyLogging {
       extends HostCrawlerEvent
 
   final case class HostCrawlerData(
+      sourceUrl: String,
       noOfSiteScraper: Int,
       indexer: ActorRef[IndexerEvent],
       supervisor: ActorRef[SupervisorEvent],
@@ -94,6 +95,7 @@ object HostCrawler extends LazyLogging {
 
             idle(
               HostCrawlerData(
+                urlString,
                 noOfSiteScraper,
                 indexer,
                 supervisor,
@@ -116,7 +118,9 @@ object HostCrawler extends LazyLogging {
       case (ctx, msg) =>
         msg match {
           case QueueSitemaps(baseUrl, sitemapUrls) =>
-            logger.info(s"Inspecting and queuing sitemap of '$baseUrl'.")
+            logger.info(
+              s"[${data.sourceUrl}] Inspecting and queuing sitemap of '$baseUrl'."
+            )
             val siteMapUrls = (SitemapInspector.inspectFromHost(baseUrl) ++
               SitemapInspector.inspectSitemaps(sitemapUrls)).toSet
               .filter(url => data.robotsCfg.isAllowed(url.toString))
@@ -127,7 +131,9 @@ object HostCrawler extends LazyLogging {
             )
           case Scrape(url) =>
             val updatedData = if (data.robotsCfg.isAllowed(url.toString)) {
-              logger.debug(s"Scheduled '$url' for scraping.")
+              logger.debug(
+                s"[${data.sourceUrl}] Scheduled '$url' for scraping."
+              )
               data.copy(
                 siteQueue = data.siteQueue :+ url
               )
@@ -150,6 +156,9 @@ object HostCrawler extends LazyLogging {
   ): Behavior[HostCrawlerEvent] = {
     // take all site scraper available
     val processedUrls = data.siteQueue.take(data.noOfSiteScraper)
+    logger.info(
+      s"[${data.sourceUrl}] Scraping ${processedUrls.size} urls. ${data.siteQueue.size} left in queue."
+    )
     processedUrls.foreach { url =>
       data.siteScraper ! SiteScraper.Scrape(url, ctx.self)
     }

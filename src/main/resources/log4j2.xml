@@ -13,7 +13,7 @@
     </Appenders>
     <Loggers>
         <asyncRoot level="debug">
-            <AppenderRef ref="Console" level="info"/>
+            <AppenderRef ref="Console" level="debug"/>
             <AppenderRef ref="Sentry"/>
         </asyncRoot>
 

@@ -84,7 +84,7 @@ object Supervisor extends LazyLogging {
       actorContext: ActorContext[SupervisorEvent],
       url: URL,
       reason: Throwable
-  ): SupervisorData = {
+  ): SupervisorData =
     data.scrapeCounts.get(url) match {
       case Some(scrapeCount) if scrapeCount <= data.config.maxRetries =>
         logger.warn(
@@ -106,7 +106,6 @@ object Supervisor extends LazyLogging {
           currentlyScraping = data.currentlyScraping - url
         )
     }
-  }
 
   private def handleIndexFinished(
       data: SupervisorData,
