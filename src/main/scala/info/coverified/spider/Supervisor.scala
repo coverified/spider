@@ -215,10 +215,17 @@ object Supervisor extends LazyLogging {
       data.currentlyScraping.size
     )
     logger.info(
-      "Awaiting data:\n{}",
-      data.currentlyScraping.groupBy(_.getHost).map {
-        case (host, urls) => host -> urls.size
-      }
+      "Awaiting data: {}",
+      data.currentlyScraping
+        .groupBy(_.getHost)
+        .map {
+          case (host, urls) => host -> urls.size
+        }
+        .mkString("\n")
+    )
+    logger.info(
+      "{}",
+      data.currentlyScraping.groupBy(_.getHost).mkString("\n")
     )
     idle(data)
   }
