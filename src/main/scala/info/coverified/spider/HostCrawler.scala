@@ -8,7 +8,8 @@ package info.coverified.spider
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, Routers}
 import akka.actor.typed.{ActorRef, Behavior}
 import com.typesafe.scalalogging.LazyLogging
-import crawlercommons.robots.BaseRobotRules
+import crawlercommons.robots.SimpleRobotRules.RobotRulesMode
+import crawlercommons.robots.{BaseRobotRules, SimpleRobotRules}
 import info.coverified.graphql.schema.CoVerifiedClientSchema.Source.SourceView
 import info.coverified.spider.Indexer.IndexerEvent
 import info.coverified.spider.SiteScraper.SiteScraperEvent
@@ -21,6 +22,7 @@ import scala.collection.parallel.immutable.ParVector
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.language.{existentials, postfixOps}
+import scala.util.{Failure, Success}
 
 object HostCrawler extends LazyLogging {
 
@@ -73,20 +75,28 @@ object HostCrawler extends LazyLogging {
               .withRoundRobinRouting()
 
             // configure robots txt
-            val robotsTxtCfg = RobotsTxtInspector.inspect(url)
-
-            // we want to queue the sitemap if available
-            ctx.self ! QueueSitemaps(
-              url,
-              robotsTxtCfg.getSitemaps.asScala.toVector
-            )
+            val robotsTxtCfg = RobotsTxtInspector.inspect(url) match {
+              case Failure(exception) =>
+                logger.warn(
+                  s"Cannot process robots.txt from url '$url'. Configure everything as allowed. Exception:",
+                  exception
+                )
+                new SimpleRobotRules(RobotRulesMode.ALLOW_ALL)
+              case Success(robotsTxtCfg) =>
+                // we want to queue the sitemap if available
+                ctx.self ! QueueSitemaps(
+                  url,
+                  robotsTxtCfg.getSitemaps.asScala.toVector
+                )
+                robotsTxtCfg
+            }
 
             idle(
               HostCrawlerData(
                 noOfSiteScraper,
                 indexer,
                 supervisor,
-                ctx.spawn(pool, "HostCrawler-pool"),
+                ctx.spawn(pool, "SiteScraper-pool"),
                 robotsTxtCfg
               )
             )
