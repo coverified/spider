@@ -97,16 +97,18 @@ object Supervisor extends LazyLogging {
         )
         scrape(url, actorContext, data)
       case Some(_) =>
-        logger.warn(
+        val msg =
           s"Cannot re-schedule '$url' for scraping. Max retries reached! Error = $reason"
-        )
+        logger.warn(msg)
+        Sentry.captureMessage(msg, SentryLevel.WARNING)
         data.copy(
           currentlyScraping = data.currentlyScraping - url
         )
       case None =>
-        logger.error(
+        val msg =
           s"Cannot re-schedule '$url' for scraping. Unknown url! Error = $reason"
-        )
+        logger.error(msg)
+        Sentry.captureMessage(msg, SentryLevel.ERROR)
         data.copy(
           currentlyScraping = data.currentlyScraping - url
         )
