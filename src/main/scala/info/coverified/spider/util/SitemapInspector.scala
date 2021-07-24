@@ -25,17 +25,18 @@ object SitemapInspector extends LazyLogging {
     sitemapUrls.flatMap(inspectSitemap)
 
   def inspectSitemap(sitemapUrl: String): Iterable[URL] =
-    Try(siteMapParser.parseSiteMap(new URL(sitemapUrl))) match {
+    inspectSitemap(new URL(sitemapUrl))
+
+  def inspectSitemap(sitemap: URL): Iterable[URL] =
+    Try(siteMapParser.parseSiteMap(sitemap)) match {
       case Failure(exception) =>
-        logger.warn(s"Cannot parse sitemap '$sitemapUrl'.", exception)
+        logger.warn(s"Cannot parse sitemap '${sitemap.toString}'.", exception)
         Vector.empty
       case Success(siteMap: SiteMap) =>
         siteMap.getSiteMapUrls.asScala.map(_.getUrl)
-      case Success(_: SiteMapIndex) =>
-        val errorString = s"Multiple nested sitemaps are not supported yet! Sitemap url: $sitemapUrl"
-        logger.error(errorString)
-        Sentry.captureMessage(errorString, SentryLevel.ERROR)
-        Vector.empty
+      case Success(index: SiteMapIndex) =>
+        index.getSitemaps.asScala
+          .flatMap(sitemap => inspectSitemap(sitemap.getUrl))
       case Success(invalid) =>
         val errorString = s"Invalid sitemap received: $invalid"
         logger.error(errorString)
