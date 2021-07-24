@@ -145,7 +145,7 @@ object Supervisor extends LazyLogging {
           (updatedData, url) => scrape(url, actorContext, updatedData)
         )
       logger.info(
-        s"Received ${newUrls.size} (new: ${uniqueNewUrls.size}) urls."
+        s"Received ${newUrls.size} (new: ${uniqueNewUrls.size}) urls with host ${url.getHost}."
       )
       logger.debug(
         s"Source url is '$url'."
@@ -153,7 +153,7 @@ object Supervisor extends LazyLogging {
       updatedData
         .copy(currentlyScraping = updatedData.currentlyScraping - url)
     } else {
-      logger.debug(s"No new links from $url. ")
+      logger.debug(s"No new links from $url.")
       logger.debug(
         s"Currently waiting for ${data.currentlyScraping.size} urls scheduled for scraping."
       )
