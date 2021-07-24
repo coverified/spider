@@ -11,6 +11,7 @@ import io.sentry.{Sentry, SentryLevel}
 
 import java.net.URL
 import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.util.{Failure, Success, Try}
 
 object SitemapInspector extends LazyLogging {
 
@@ -24,15 +25,18 @@ object SitemapInspector extends LazyLogging {
     sitemapUrls.flatMap(inspectSitemap)
 
   def inspectSitemap(sitemapUrl: String): Iterable[URL] =
-    siteMapParser.parseSiteMap(new URL(sitemapUrl)) match {
-      case map: SiteMap =>
-        map.getSiteMapUrls.asScala.map(_.getUrl)
-      case _: SiteMapIndex =>
+    Try(siteMapParser.parseSiteMap(new URL(sitemapUrl))) match {
+      case Failure(exception) =>
+        logger.warn(s"Cannot parse sitemap '$sitemapUrl'.", exception)
+        Vector.empty
+      case Success(siteMap: SiteMap) =>
+        siteMap.getSiteMapUrls.asScala.map(_.getUrl)
+      case Success(_: SiteMapIndex) =>
         val errorString = "Multiple nested sitemaps are not supported yet!"
         logger.error(errorString)
         Sentry.captureMessage(errorString, SentryLevel.ERROR)
         Vector.empty
-      case invalid =>
+      case Success(invalid) =>
         val errorString = s"Invalid sitemap received: $invalid"
         logger.error(errorString)
         Sentry.captureMessage(errorString, SentryLevel.ERROR)

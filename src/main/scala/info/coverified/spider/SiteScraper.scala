@@ -80,6 +80,7 @@ object SiteScraper extends LazyLogging {
         .timeout(timeout.toMillis.toInt)
         .followRedirects(true)
         .ignoreContentType(true)
+        .ignoreHttpErrors(false)
         .userAgent(USER_AGENT)
         .execute()
         .withCoVerifiedHeaderFilter
