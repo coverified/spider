@@ -32,7 +32,7 @@ object SitemapInspector extends LazyLogging {
       case Success(siteMap: SiteMap) =>
         siteMap.getSiteMapUrls.asScala.map(_.getUrl)
       case Success(_: SiteMapIndex) =>
-        val errorString = "Multiple nested sitemaps are not supported yet!"
+        val errorString = s"Multiple nested sitemaps are not supported yet! Sitemap url: $sitemapUrl"
         logger.error(errorString)
         Sentry.captureMessage(errorString, SentryLevel.ERROR)
         Vector.empty
