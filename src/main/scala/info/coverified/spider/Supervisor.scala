@@ -16,6 +16,9 @@ import io.sentry.{Sentry, SentryLevel}
 import scala.language.{existentials, postfixOps}
 import java.net.URL
 import java.util.Date
+import scala.concurrent.Await
+import scala.concurrent.duration.DurationInt
+import scala.util.{Failure, Success, Try}
 
 object Supervisor extends LazyLogging {
 
@@ -47,7 +50,10 @@ object Supervisor extends LazyLogging {
     idle(SupervisorData(cfg))
   }
 
-  private def idle(data: SupervisorData): Behavior[SupervisorEvent] =
+  private def idle(
+      data: SupervisorData,
+      shutdownTryCounter: Int = 0
+  ): Behavior[SupervisorEvent] =
     Behaviors.receive {
       case (actorContext, msg) =>
         msg match {
@@ -78,7 +84,7 @@ object Supervisor extends LazyLogging {
           case IndexFinished(url, newUrls) =>
             idle(handleIndexFinished(data, actorContext, url, newUrls))
           case IdleTimeout =>
-            checkAndShutdown(data, actorContext.system)
+            checkAndShutdown(data, actorContext.system, shutdownTryCounter)
         }
       case _ =>
         Behaviors.unhandled
@@ -208,7 +214,8 @@ object Supervisor extends LazyLogging {
 
   private def checkAndShutdown(
       data: SupervisorData,
-      system: ActorSystem[Nothing]
+      system: ActorSystem[Nothing],
+      shutdownCounter: Int
   ): Behavior[SupervisorEvent] = {
     if (data.currentlyScraping.isEmpty) {
       // shutdown all
@@ -243,7 +250,25 @@ object Supervisor extends LazyLogging {
         "{}",
         data.currentlyScraping.groupBy(_.getHost).mkString("\n")
       )
+
+      // force shutdown after 10 tries to softly shutdown
+      if (shutdownCounter == 10) {
+        val msg = "Maximum number of shutdown tries reached. Force shutdown!"
+        logger.error(msg)
+        Sentry.captureMessage(msg, SentryLevel.FATAL)
+        system.terminate()
+        Try(Await.ready(system.whenTerminated, 60 seconds)) match {
+          case Failure(exception) =>
+            logger.error(
+              "Exception occurred during akka system shutdown!",
+              exception
+            )
+            Sentry.captureException(exception)
+          case Success(_) =>
+        }
+        System.exit(-1)
+      }
     }
-    idle(data)
+    idle(data, shutdownTryCounter = shutdownCounter + 1)
   }
 }
