@@ -166,38 +166,42 @@ object Supervisor extends LazyLogging {
       context: ActorContext[SupervisorEvent],
       data: SupervisorData
   ): SupervisorData = {
-    val host = url.getHost
-    if (host.nonEmpty) {
-      data.host2Source
-        .get(host)
-        .map { source =>
-          val actor = data.host2Actor.getOrElse(
-            host,
-            context
-              .spawn(
-                HostCrawler(
-                  source,
-                  data.config.scrapeParallelism,
-                  data.config.scrapeInterval,
-                  data.config.scrapeTimeout,
-                  data.config.apiUrl,
-                  data.config.authSecret,
-                  context.self
-                ),
-                s"Scraper_$host"
-              )
-          )
-          actor ! HostCrawler.Scrape(clean(url))
-          data.copy(
-            host2Actor = data.host2Actor + (host -> actor),
-            scrapeCounts = countVisits(clean(url), data.scrapeCounts),
-            currentlyScraping = data.currentlyScraping + clean(url)
-          )
-        }
-        .getOrElse(data)
-    } else {
-      logger.warn(s"Cannot get host of url: '$url'!")
+    if (data.currentlyScraping.contains(clean(url))) {
       data
+    } else {
+      val host = url.getHost
+      if (host.nonEmpty) {
+        data.host2Source
+          .get(host)
+          .map { source =>
+            val actor = data.host2Actor.getOrElse(
+              host,
+              context
+                .spawn(
+                  HostCrawler(
+                    source,
+                    data.config.scrapeParallelism,
+                    data.config.scrapeInterval,
+                    data.config.scrapeTimeout,
+                    data.config.apiUrl,
+                    data.config.authSecret,
+                    context.self
+                  ),
+                  s"Scraper_$host"
+                )
+            )
+            actor ! HostCrawler.Scrape(clean(url))
+            data.copy(
+              host2Actor = data.host2Actor + (host -> actor),
+              scrapeCounts = countVisits(clean(url), data.scrapeCounts),
+              currentlyScraping = data.currentlyScraping + clean(url)
+            )
+          }
+          .getOrElse(data)
+      } else {
+        logger.warn(s"Cannot get host of url: '$url'!")
+        data
+      }
     }
   }
 

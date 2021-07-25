@@ -30,10 +30,12 @@ object SitemapInspector extends LazyLogging {
 
   def inspectSitemap(sitemap: URL): Iterable[URL] =
     Try(siteMapParser.parseSiteMap(sitemap)) match {
-      case Failure(exception: FileNotFoundException) =>
-        logger.info(s"Cannot parse sitemap '${sitemap.toString}'.", exception)
+      case Failure(_: FileNotFoundException) =>
+        logger.info(
+          s"Cannot parse sitemap '${sitemap.toString}'. File not found."
+        )
         Sentry.captureMessage(
-          s"Cannot parse sitemap '${sitemap.toString}'.",
+          s"Cannot parse sitemap '${sitemap.toString}'. File not found.",
           SentryLevel.INFO
         )
         Vector.empty

@@ -15,8 +15,10 @@ import info.coverified.spider.Indexer.IndexerEvent
 import info.coverified.spider.SiteScraper.SiteScraperEvent
 import info.coverified.spider.Supervisor.{SitemapFinished, SupervisorEvent}
 import info.coverified.spider.util.{RobotsTxtInspector, SitemapInspector}
+import io.sentry.Sentry
 import sttp.model.Uri
 
+import java.io.FileNotFoundException
 import java.net.URL
 import scala.collection.parallel.immutable.ParVector
 import scala.concurrent.duration._
@@ -72,11 +74,17 @@ object HostCrawler extends LazyLogging {
 
             // configure robots txt
             val robotsTxtCfg = RobotsTxtInspector.inspect(url) match {
+              case Failure(exception: FileNotFoundException) =>
+                logger.info(
+                  s"Cannot process robots.txt from url '$url'. Configure everything as allowed. File not found!"
+                )
+                new SimpleRobotRules(RobotRulesMode.ALLOW_ALL)
               case Failure(exception) =>
                 logger.warn(
                   s"Cannot process robots.txt from url '$url'. Configure everything as allowed. Exception:",
                   exception
                 )
+                Sentry.captureException(exception)
                 new SimpleRobotRules(RobotRulesMode.ALLOW_ALL)
               case Success(robotsTxtCfg) =>
                 robotsTxtCfg
