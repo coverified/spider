@@ -11,6 +11,7 @@ import com.typesafe.scalalogging.LazyLogging
 import info.coverified.graphql.schema.CoVerifiedClientSchema.Source.SourceView
 import info.coverified.graphql.schema.CoVerifiedClientSchema.Url.UrlView
 import info.coverified.graphql.schema.CoVerifiedClientSchema._
+import io.sentry.Sentry
 import sttp.client3.Request
 import sttp.client3.asynchttpclient.zio.{
   AsyncHttpClientZioBackend,
@@ -19,6 +20,8 @@ import sttp.client3.asynchttpclient.zio.{
 }
 import sttp.model.Uri
 import zio.{RIO, ZIO}
+
+import scala.util.{Failure, Success, Try}
 
 object DBConnector extends LazyLogging {
 
@@ -69,7 +72,7 @@ object DBConnector extends LazyLogging {
           .toRequest(apiUrl)
           .header("x-coverified-internal-auth", authSecret)
       )
-    ).flatMap(_.headOption)
+    ).flatMap(_.headOption).flatMap(_.headOption)
   }
 
   /**
@@ -113,20 +116,32 @@ object DBConnector extends LazyLogging {
 
   def sendRequest[T <: Throwable, A](
       request: ZIO[SttpClient, T, Either[T, A]]
-  ): A =
-    zioRuntime.unsafeRun(
-      request
-        .provideCustomLayer(AsyncHttpClientZioBackend.layer())
+  ): Option[A] = {
+    Try(
+      zioRuntime.unsafeRun(
+        request
+          .provideCustomLayer(AsyncHttpClientZioBackend.layer())
+      )
     ) match {
-      case Right(response) =>
+      case Failure(exception) =>
+        logger.error(
+          "Exception while sending request to graphql api.",
+          exception
+        )
+        Sentry.captureException(exception)
+        None
+      case Success(Right(response)) =>
         logger.trace(
           "Response: {}",
           response
         )
-        response
-      case Left(error) =>
-        throw error
+        Some(response)
+      case Success(Left(error)) =>
+        logger.error("GraphQL api returned an exception.", error)
+        Sentry.captureException(error)
+        None
     }
+  }
 
   private def sendRequest[A](
       req: Request[Either[CalibanClientError, A], Any]

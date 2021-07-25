@@ -27,9 +27,8 @@ object Main extends LazyLogging {
           .sendRequest(
             DBConnector.getAllSources(cfg.apiUrl, cfg.authSecret)
           )
-          .foreach { source =>
-            system ! Supervisor.Start(source)
-          }
+          .foreach(_.map(source => system ! Supervisor.Start(source)))
+
     }
 
   }
