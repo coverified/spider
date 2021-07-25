@@ -9,6 +9,7 @@ import com.typesafe.scalalogging.LazyLogging
 import crawlercommons.sitemaps.{SiteMap, SiteMapIndex, SiteMapParser}
 import io.sentry.{Sentry, SentryLevel}
 
+import java.io.FileNotFoundException
 import java.net.URL
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.{Failure, Success, Try}
@@ -29,6 +30,13 @@ object SitemapInspector extends LazyLogging {
 
   def inspectSitemap(sitemap: URL): Iterable[URL] =
     Try(siteMapParser.parseSiteMap(sitemap)) match {
+      case Failure(exception: FileNotFoundException) =>
+        logger.info(s"Cannot parse sitemap '${sitemap.toString}'.", exception)
+        Sentry.captureMessage(
+          s"Cannot parse sitemap '${sitemap.toString}'.",
+          SentryLevel.INFO
+        )
+        Vector.empty
       case Failure(exception) =>
         logger.warn(s"Cannot parse sitemap '${sitemap.toString}'.", exception)
         Vector.empty

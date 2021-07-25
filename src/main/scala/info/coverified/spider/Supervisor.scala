@@ -106,7 +106,7 @@ object Supervisor extends LazyLogging {
         val msg =
           s"Cannot re-schedule '$url' for scraping. Max retries reached! Error = $reason"
         logger.warn(msg)
-        Sentry.captureMessage(msg, SentryLevel.WARNING)
+        Sentry.captureMessage(msg, SentryLevel.INFO)
         data.copy(
           currentlyScraping = data.currentlyScraping - url
         )
