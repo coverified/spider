@@ -101,7 +101,11 @@ object Supervisor extends LazyLogging {
         logger.warn(
           s"Scraping failed. Re-scheduling! url: $url Reason = $reason"
         )
-        scrape(url, actorContext, data)
+        scrape(
+          url,
+          actorContext,
+          data.copy(currentlyScraping = data.currentlyScraping - url)
+        )
       case Some(_) =>
         val msg =
           s"Cannot re-schedule '$url' for scraping. Max retries reached! Error = $reason"
