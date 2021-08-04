@@ -2,20 +2,19 @@ stages:
   - build
   - test
   - containerize
-  - deploy
+  - release
 
 variables:
   # Use TLS https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#tls-enabled
   DOCKER_HOST: tcp://docker:2376
   DOCKER_TLS_CERTDIR: "/certs"
-  CONTAINER_IMAGE: $CI_REGISTRY_IMAGE:latest
   GRADLE_USER_HOME: "$CI_PROJECT_DIR/.cache/.gradle"
 
 cache:
   paths:
     - .cache/.gradle
 
-build:
+build4dockerImage:
   stage: build
   image: registry.gitlab.com/coverified/infrastructure/scala-base:latest
   script:
@@ -39,25 +38,31 @@ test:
       cobertura: build/reports/scoverage/cobertura.xml
   dependencies: []
 
-containerize:
+buildDockerImage:
   stage: containerize
   image: docker:20
   services:
     - docker:20-dind
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build --pull -t $CONTAINER_IMAGE --build-arg PROJECT_NAME --build-arg PROJECT_VERSION --build-arg MAIN_CLASS --build-arg SENTRY_RELEASE=$CI_COMMIT_SHA .
-    - docker push $CONTAINER_IMAGE
-  dependencies:
-    - build
-  only:
-    - main
+    - docker build --pull -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA --build-arg PROJECT_NAME --build-arg PROJECT_VERSION --build-arg MAIN_CLASS --build-arg SENTRY_RELEASE=$CI_COMMIT_SHA .
+    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    - docker push --all-tags $CI_REGISTRY_IMAGE
+  needs:
+    - test
+    - build4dockerImage
   cache: {}
 
-# TODO: deployment
-#deploy:
-#  stage: deploy
-#  script:
-#    - ./deploy.sh
-#  only:
-#    - main
+release-image:
+    stage: release
+    image: docker:20
+    services:
+      - docker:20-dind
+    script:
+      - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+      - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+      - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE:latest
+      - docker push --all-tags $CI_REGISTRY_IMAGE
+    only:
+      - main
+    cache: {}
