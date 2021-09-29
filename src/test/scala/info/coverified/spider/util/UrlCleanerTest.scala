@@ -93,6 +93,17 @@ class UrlCleanerTest extends should.Matchers with AnyWordSpecLike {
         )
       )
     }
+
+    "removes '?cms_handOverParams=' from urls correctly" in {
+      test(
+        input = Vector(
+          "https://www.onlinezugangsgesetz.de/Webs/OZG/DE/service/seite-empfehlen/functions/mailversand.html?cms_handOverParams=uriHash%253Db610DEUQNQNxKUCrut-rcFw3zR86OSw%25253D%2526uri%253Dhttps%25253A%25252F%25252Fwww.onlinezugangsgesetz.de%25252FSharedDocs%25252Fkurzmeldungen%25252FWebs%25252FOZG%25252FDE%25252F2020%25252Froentgen-und-co.html"
+        ),
+        expectedResults = Vector(
+          "https://www.onlinezugangsgesetz.de/Webs/OZG/DE/service/seite-empfehlen/functions/mailversand.html"
+        )
+      )
+    }
   }
 
   private def test(
